@@ -1,0 +1,4 @@
+(sym_lib_table
+	(version 7)
+	(lib (name "LED_1088bs") (type "KiCad") (uri "${KIPRJMOD}/SymbolsNStuff/LED_1088bs.kicad_sym") (options "") (descr ""))
+)
