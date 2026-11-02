@@ -149,7 +149,7 @@ add_global_label("GND", 80.00, 99.06, 270)
 
 # Resistor R1 (470R) on Pin 11 (PA1) leading to DIN
 # MCU Pin 11 is at (95.24, 67.38)
-symbols.append(format_sym("R1", 112.00, 67.38, 270, 0, -2.54, "center", 0, 2.54, "center"))
+symbols.append(format_sym("R1", 112.00, 67.38, 90, 0, -2.54, "center", 0, 2.54, "center"))
 # In rot 270, Pin 1 is at (108.19, 67.38), Pin 2 is at (115.81, 67.38)
 add_wire(95.24, 67.38, 108.19, 67.38)
 add_wire(115.81, 67.38, 138.00, 67.38)
@@ -303,13 +303,13 @@ for r, (r_name, led_list) in enumerate(rows_leds):
     
     # 5V Rail (y_row - 1.27)
     y_vdd = y_row - 1.27
-    add_wire(158.00, y_vdd, 295.00, y_vdd)
-    add_global_label("5V", 158.00, y_vdd, 180)
+    add_wire(160.00, y_vdd, 295.00, y_vdd)
+    add_global_label("5V", 160.00, y_vdd, 180)
     
     # GND Rail (y_row + 1.27)
     y_gnd = y_row + 1.27
-    add_wire(158.00, y_gnd, 295.00, y_gnd)
-    add_global_label("GND", 158.00, y_gnd, 180)
+    add_wire(160.00, y_gnd, 295.00, y_gnd)
+    add_global_label("GND", 160.00, y_gnd, 180)
 
     for c in range(6):
         led_ref = led_list[c]
@@ -353,7 +353,7 @@ for r in range(5):
     
     x_right_turn = 312.00
     y_channel = y_row_curr + 19.05  # halfway between row r and row r+1
-    x_left_turn = 158.00
+    x_left_turn = 152.00
     
     # 1. Out from end DOUT to right margin
     add_wire(x_dout_end, y_dout_end, x_right_turn, y_dout_end)
@@ -460,7 +460,8 @@ for r in range(6):
     for c in range(6):
         cx = cx_bank[c]
         cap_ref = caps_bank[r][c]
-        symbols.append(format_sym(cap_ref, cx, cy, 0, 2.00, -1.27, "left", 2.00, 1.27, "left", font_size=1.0))
+        rot = 180 if cap_ref == "C57" else 0
+        symbols.append(format_sym(cap_ref, cx, cy, rot, 2.00, -1.27, "left", 2.00, 1.27, "left", font_size=1.0))
         
         # Connect Pin 1 (top, 5V) to 5V rail
         add_junc(cx, y_rail_5v)
