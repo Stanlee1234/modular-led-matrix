@@ -1,4 +1,6 @@
 (fp_lib_table
 	(version 7)
-	(lib (name "SymbolsNStuff") (type "KiCad") (uri "${KIPRJMOD}/SymbolsNStuff") (options "") (descr ""))
+	(lib (name "Library") (type "KiCad") (uri "${KIPRJMOD}/SymbolsNModels/Library.pretty") (options "") (descr "Bitluni Magnet Matrix Footprint Library"))
+	(lib (name "SymbolsNStuff") (type "KiCad") (uri "${KIPRJMOD}/SymbolsNModels") (options "") (descr "Symbols and Footprints"))
+	(lib (name "SymbolsNModels") (type "KiCad") (uri "${KIPRJMOD}/SymbolsNModels") (options "") (descr "Symbols and Footprints"))
 )

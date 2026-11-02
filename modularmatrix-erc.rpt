@@ -1,0 +1,126 @@
+ERC report (2026-11-01T20:44:20, Encoding UTF8)
+Report includes: Errors, Warnings
+
+***** Sheet /
+[lib_symbol_mismatch]: Symbol 'WS2812D_2' doesn't match copy in library 'New_Library'
+    ; warning
+    @(165.10 mm, 48.26 mm): Symbol U15 [WS2812D_2]
+[lib_symbol_mismatch]: Symbol 'WS2812D_2' doesn't match copy in library 'New_Library'
+    ; warning
+    @(165.10 mm, 86.36 mm): Symbol U23 [WS2812D_2]
+[lib_symbol_mismatch]: Symbol 'WS2812D_2' doesn't match copy in library 'New_Library'
+    ; warning
+    @(165.10 mm, 124.46 mm): Symbol U35 [WS2812D_2]
+[lib_symbol_mismatch]: Symbol 'WS2812D_2' doesn't match copy in library 'New_Library'
+    ; warning
+    @(165.10 mm, 162.56 mm): Symbol U43 [WS2812D_2]
+[lib_symbol_mismatch]: Symbol 'WS2812D_2' doesn't match copy in library 'New_Library'
+    ; warning
+    @(165.10 mm, 200.66 mm): Symbol U51 [WS2812D_2]
+[lib_symbol_mismatch]: Symbol 'WS2812D_2' doesn't match copy in library 'New_Library'
+    ; warning
+    @(165.10 mm, 238.76 mm): Symbol U59 [WS2812D_2]
+[lib_symbol_mismatch]: Symbol 'WS2812D_2' doesn't match copy in library 'New_Library'
+    ; warning
+    @(189.23 mm, 48.26 mm): Symbol U14 [WS2812D_2]
+[lib_symbol_mismatch]: Symbol 'WS2812D_2' doesn't match copy in library 'New_Library'
+    ; warning
+    @(189.23 mm, 86.36 mm): Symbol U22 [WS2812D_2]
+[lib_symbol_mismatch]: Symbol 'WS2812D_2' doesn't match copy in library 'New_Library'
+    ; warning
+    @(189.23 mm, 124.46 mm): Symbol U34 [WS2812D_2]
+[lib_symbol_mismatch]: Symbol 'WS2812D_2' doesn't match copy in library 'New_Library'
+    ; warning
+    @(189.23 mm, 162.56 mm): Symbol U42 [WS2812D_2]
+[lib_symbol_mismatch]: Symbol 'WS2812D_2' doesn't match copy in library 'New_Library'
+    ; warning
+    @(189.23 mm, 200.66 mm): Symbol U50 [WS2812D_2]
+[lib_symbol_mismatch]: Symbol 'WS2812D_2' doesn't match copy in library 'New_Library'
+    ; warning
+    @(189.23 mm, 238.76 mm): Symbol U58 [WS2812D_2]
+[lib_symbol_mismatch]: Symbol 'WS2812D_2' doesn't match copy in library 'New_Library'
+    ; warning
+    @(213.36 mm, 48.26 mm): Symbol U13 [WS2812D_2]
+[lib_symbol_mismatch]: Symbol 'WS2812D_2' doesn't match copy in library 'New_Library'
+    ; warning
+    @(213.36 mm, 86.36 mm): Symbol U21 [WS2812D_2]
+[lib_symbol_mismatch]: Symbol 'WS2812D_2' doesn't match copy in library 'New_Library'
+    ; warning
+    @(213.36 mm, 124.46 mm): Symbol U33 [WS2812D_2]
+[lib_symbol_mismatch]: Symbol 'WS2812D_2' doesn't match copy in library 'New_Library'
+    ; warning
+    @(213.36 mm, 162.56 mm): Symbol U41 [WS2812D_2]
+[lib_symbol_mismatch]: Symbol 'WS2812D_2' doesn't match copy in library 'New_Library'
+    ; warning
+    @(213.36 mm, 200.66 mm): Symbol U49 [WS2812D_2]
+[lib_symbol_mismatch]: Symbol 'WS2812D_2' doesn't match copy in library 'New_Library'
+    ; warning
+    @(213.36 mm, 238.76 mm): Symbol U57 [WS2812D_2]
+[lib_symbol_mismatch]: Symbol 'WS2812D_2' doesn't match copy in library 'New_Library'
+    ; warning
+    @(237.49 mm, 48.26 mm): Symbol U12 [WS2812D_2]
+[lib_symbol_mismatch]: Symbol 'WS2812D_2' doesn't match copy in library 'New_Library'
+    ; warning
+    @(237.49 mm, 86.36 mm): Symbol U20 [WS2812D_2]
+[lib_symbol_mismatch]: Symbol 'WS2812D_2' doesn't match copy in library 'New_Library'
+    ; warning
+    @(237.49 mm, 124.46 mm): Symbol U32 [WS2812D_2]
+[lib_symbol_mismatch]: Symbol 'WS2812D_2' doesn't match copy in library 'New_Library'
+    ; warning
+    @(237.49 mm, 162.56 mm): Symbol U40 [WS2812D_2]
+[lib_symbol_mismatch]: Symbol 'WS2812D_2' doesn't match copy in library 'New_Library'
+    ; warning
+    @(237.49 mm, 200.66 mm): Symbol U48 [WS2812D_2]
+[lib_symbol_mismatch]: Symbol 'WS2812D_2' doesn't match copy in library 'New_Library'
+    ; warning
+    @(237.49 mm, 238.76 mm): Symbol U56 [WS2812D_2]
+[lib_symbol_mismatch]: Symbol 'WS2812D_2' doesn't match copy in library 'New_Library'
+    ; warning
+    @(261.62 mm, 48.26 mm): Symbol U11 [WS2812D_2]
+[lib_symbol_mismatch]: Symbol 'WS2812D_2' doesn't match copy in library 'New_Library'
+    ; warning
+    @(261.62 mm, 86.36 mm): Symbol U19 [WS2812D_2]
+[lib_symbol_mismatch]: Symbol 'WS2812D_2' doesn't match copy in library 'New_Library'
+    ; warning
+    @(261.62 mm, 124.46 mm): Symbol U31 [WS2812D_2]
+[lib_symbol_mismatch]: Symbol 'WS2812D_2' doesn't match copy in library 'New_Library'
+    ; warning
+    @(261.62 mm, 162.56 mm): Symbol U39 [WS2812D_2]
+[lib_symbol_mismatch]: Symbol 'WS2812D_2' doesn't match copy in library 'New_Library'
+    ; warning
+    @(261.62 mm, 200.66 mm): Symbol U47 [WS2812D_2]
+[lib_symbol_mismatch]: Symbol 'WS2812D_2' doesn't match copy in library 'New_Library'
+    ; warning
+    @(261.62 mm, 238.76 mm): Symbol U55 [WS2812D_2]
+[lib_symbol_mismatch]: Symbol 'WS2812D_2' doesn't match copy in library 'New_Library'
+    ; warning
+    @(285.75 mm, 48.26 mm): Symbol U10 [WS2812D_2]
+[lib_symbol_mismatch]: Symbol 'WS2812D_2' doesn't match copy in library 'New_Library'
+    ; warning
+    @(285.75 mm, 86.36 mm): Symbol U18 [WS2812D_2]
+[lib_symbol_mismatch]: Symbol 'WS2812D_2' doesn't match copy in library 'New_Library'
+    ; warning
+    @(285.75 mm, 124.46 mm): Symbol U30 [WS2812D_2]
+[lib_symbol_mismatch]: Symbol 'WS2812D_2' doesn't match copy in library 'New_Library'
+    ; warning
+    @(285.75 mm, 162.56 mm): Symbol U38 [WS2812D_2]
+[lib_symbol_mismatch]: Symbol 'WS2812D_2' doesn't match copy in library 'New_Library'
+    ; warning
+    @(285.75 mm, 200.66 mm): Symbol U46 [WS2812D_2]
+[lib_symbol_mismatch]: Symbol 'WS2812D_2' doesn't match copy in library 'New_Library'
+    ; warning
+    @(285.75 mm, 238.76 mm): Symbol U54 [WS2812D_2]
+[lib_symbol_mismatch]: Symbol 'PWR_FLAG' doesn't match copy in library 'power'
+    ; warning
+    @(345.44 mm, 100.33 mm): Symbol #FLG01 [PWR_FLAG]
+[lib_symbol_mismatch]: Symbol 'PWR_FLAG' doesn't match copy in library 'power'
+    ; warning
+    @(388.62 mm, 100.33 mm): Symbol #FLG02 [PWR_FLAG]
+
+ ** ERC messages: 38  Errors 0  Warnings 38
+
+ ** Ignored checks:
+    - Global label only appears once in the schematic
+    - Four connection points are joined together
+    - SPICE model issue
+    - Assigned footprint doesn't match footprint filters

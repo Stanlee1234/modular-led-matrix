@@ -1,4 +1,6 @@
 (sym_lib_table
 	(version 7)
-	(lib (name "LED_1088bs") (type "KiCad") (uri "${KIPRJMOD}/SymbolsNStuff/LED_1088bs.kicad_sym") (options "") (descr ""))
+	(lib (name "New_Library") (type "KiCad") (uri "${KIPRJMOD}/SymbolsNModels/New_Library.kicad_sym") (options "") (descr "Bitluni Magnet Matrix Symbol Library"))
+	(lib (name "MAXADC") (type "KiCad") (uri "${KIPRJMOD}/SymbolsNModels/MAXADC.kicad_sym") (options "") (descr "ADC/Auxiliary Symbols"))
+	(lib (name "LED_1088bs") (type "KiCad") (uri "${KIPRJMOD}/SymbolsNModels/LED_1088bs.kicad_sym") (options "") (descr "Legacy 1088BS Symbol"))
 )
