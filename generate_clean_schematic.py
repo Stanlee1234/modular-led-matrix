@@ -1,15 +1,62 @@
-import uuid
 import re
+import uuid
 
-# ==============================================================================
-# GENERATOR FOR MODULAR LED MATRIX 6x6 SCHEMATIC (HUMANLIKE WIRING)
-# ==============================================================================
+# Load baseline symbols, header, lib_symbols from working_backup
+with open("working_backup.kicad_sch", "r") as f:
+    text = f.read()
 
+header = text[:text.find("(lib_symbols")]
+start = text.find("(lib_symbols")
+depth = 0
+for i in range(start, len(text)):
+    if text[i] == '(':
+        depth += 1
+    elif text[i] == ')':
+        depth -= 1
+        if depth == 0:
+            lib_symbols = text[start:i+1]
+            break
+closing = """\t(sheet_instances
+\t\t(path "/"
+\t\t\t(page "1")
+\t\t)
+\t)
+)
+"""
+
+# Parse all symbols from working_backup to retain exact UUIDs, pins, footprints, and instances
+sym_blocks = re.findall(r'(\t\(symbol\n\t\t\(lib_id\s+\"[^\"]+?\".*?\n\t\))', text, re.DOTALL)
+sym_by_ref = {}
+for b in sym_blocks:
+    m = re.search(r'\(property\s+\"Reference\"\s+\"([^\"]+)\"', b)
+    if m:
+        sym_by_ref[m.group(1)] = b
+
+print(f"Loaded {len(sym_by_ref)} symbols from working_backup.")
+
+symbols = []
 wires = []
 junctions = []
 labels = []
-symbols = []
 texts = []
+
+def format_sym(ref, x, y, rot=0, ref_ox=2.54, ref_oy=-1.27, ref_just="left", val_ox=2.54, val_oy=1.27, val_just="left", hide_val=False, font_size=1.27):
+    block = sym_by_ref[ref]
+    block = re.sub(r'(\t\(symbol\n\t\t\(lib_id\s+\"[^\"]+?\"\n\t\t\(at\s+)[\d\.\-]+\s+[\d\.\-]+(?:\s+[\d\.\-]+)?(\))', rf'\g<1>{x:.2f} {y:.2f} {rot}\2', block, count=1)
+    
+    rx, ry = x + ref_ox, y + ref_oy
+    ref_just_str = f'\n\t\t\t\t(justify {ref_just})' if ref_just else ''
+    ref_repl = f'(property "Reference" "{ref}"\n\t\t\t(at {rx:.2f} {ry:.2f} 0)\n\t\t\t(show_name no)\n\t\t\t(do_not_autoplace no)\n\t\t\t(effects\n\t\t\t\t(font\n\t\t\t\t\t(size {font_size:.2f} {font_size:.2f})\n\t\t\t\t){ref_just_str}\n\t\t\t)\n\t\t)'
+    block = re.sub(r'\(property\s+\"Reference\"\s+\"[^\"]+?\".*?\n\t\t\)', ref_repl, block, flags=re.DOTALL, count=1)
+    
+    vx, vy = x + val_ox, y + val_oy
+    val_just_str = f'\n\t\t\t\t(justify {val_just})' if val_just else ''
+    val_hide_str = '\n\t\t\t(hide yes)' if hide_val else ''
+    val_m = re.search(r'\(property\s+\"Value\"\s+\"([^\"]+?)\"', block)
+    val_text = val_m.group(1) if val_m else ""
+    val_repl = f'(property "Value" "{val_text}"\n\t\t\t(at {vx:.2f} {vy:.2f} 0){val_hide_str}\n\t\t\t(show_name no)\n\t\t\t(do_not_autoplace no)\n\t\t\t(effects\n\t\t\t\t(font\n\t\t\t\t\t(size {font_size:.2f} {font_size:.2f})\n\t\t\t\t){val_just_str}\n\t\t\t)\n\t\t)'
+    block = re.sub(r'\(property\s+\"Value\"\s+\"[^\"]+?\".*?\n\t\t\)', val_repl, block, flags=re.DOTALL, count=1)
+    return block
 
 def add_wire(x1, y1, x2, y2):
     wires.append(f"""\t(wire
@@ -55,9 +102,10 @@ def add_global_label(name, x, y, rot, shape="input"):
 \t\t)
 \t)""")
 
-def add_text(text, x, y, size=1.5, bold=False):
+def add_text(text_str, x, y, size=1.5, bold=False):
+    clean_str = text_str.replace('\n', ' ')
     bold_str = "\n\t\t\t\t(bold yes)" if bold else ""
-    texts.append(f"""\t(text "{text}"
+    texts.append(f"""\t(text "{clean_str}"
 \t\t(at {x:.2f} {y:.2f} 0)
 \t\t(effects
 \t\t\t(font
@@ -68,131 +116,17 @@ def add_text(text, x, y, size=1.5, bold=False):
 \t\t(uuid "{uuid.uuid4()}")
 \t)""")
 
-def make_sym(ref, x, y, rot=0, ref_ox=2.54, ref_oy=-1.27, ref_just="left", val_ox=2.54, val_oy=1.27, val_just="left", hide_val=False, font_size=1.27):
-    # Lookup symbol info
-    if ref.startswith("C"):
-        lib_id = "Device:C"
-        val = "100n"
-        fp = "Capacitor_SMD:C_0603_1608Metric"
-        desc = "Unpolarized capacitor"
-    elif ref.startswith("R"):
-        lib_id = "Device:R"
-        val = "470R"
-        fp = "Resistor_SMD:R_0603_1608Metric"
-        desc = "Resistor"
-    elif ref == "U69":
-        lib_id = "MCU_Microchip_ATtiny:ATtiny1604-SS"
-        val = "ATtiny1604-SS"
-        fp = "Package_SO:SOIC-14_3.9x8.7mm_P1.27mm"
-        desc = "20MHz, 16kB Flash, 1kB SRAM, 256B EEPROM, SOIC-14"
-    elif ref in ["SW1", "SW2"]:
-        lib_id = "Switch:SW_Push"
-        val = "SW_Push"
-        fp = "Library:SMD_ButtonC354946"
-        desc = "Push button switch, generic, two pins"
-    elif ref in ["J1", "J2"]:
-        lib_id = "Connector_Generic:Conn_02x04_Odd_Even"
-        val = "Conn_02x04_Odd_Even"
-        fp = "Connector_PinHeader_2.54mm:PinHeader_2x04_P2.54mm_Vertical_SMD"
-        desc = "Generic connector, double row, 02x04"
-    elif ref in ["U26", "U27"]:
-        lib_id = "New_Library:fakeMag4pinFemale"
-        val = "fakeMag4pinFemale"
-        fp = "Library:fakemag4pin90degFemale"
-        desc = "Magnetic connector female 4-pin"
-    elif ref in ["U28", "U29"]:
-        lib_id = "New_Library:fakeMag4pinMale"
-        val = "fakeMag4pinMale"
-        fp = "Library:fakemag4pin90degMale"
-        desc = "Magnetic connector male 4-pin"
-    elif ref.startswith("U"):
-        lib_id = "New_Library:WS2812D"
-        val = "WS2812D"
-        fp = "Library:WS2812DwideC"
-        desc = "WS2812D Addressable RGB LED"
-    elif ref.startswith("#FLG"):
-        lib_id = "power:PWR_FLAG"
-        val = "PWR_FLAG"
-        fp = ""
-        desc = "Power flag symbol"
-    else:
-        raise ValueError(f"Unknown component: {ref}")
-
-    hide_val_str = "\n\t\t\t(hide yes)" if hide_val else ""
-    ref_just_str = f"\n\t\t\t\t(justify {ref_just})" if ref_just else ""
-    val_just_str = f"\n\t\t\t\t(justify {val_just})" if val_just else ""
-
-    rx = x + ref_ox
-    ry = y + ref_oy
-    vx = x + val_ox
-    vy = y + val_oy
-
-    return f"""\t(symbol
-\t\t(lib_id "{lib_id}")
-\t\t(at {x:.2f} {y:.2f} {rot})
-\t\t(unit 1)
-\t\t(exclude_from_sim no)
-\t\t(in_bom yes)
-\t\t(on_board yes)
-\t\t(dnp no)
-\t\t(uuid "{uuid.uuid4()}")
-\t\t(property "Reference" "{ref}"
-\t\t\t(at {rx:.2f} {ry:.2f} 0)
-\t\t\t(effects
-\t\t\t\t(font
-\t\t\t\t\t(size {font_size:.2f} {font_size:.2f})
-\t\t\t\t){ref_just_str}
-\t\t\t)
-\t\t)
-\t\t(property "Value" "{val}"
-\t\t\t(at {vx:.2f} {vy:.2f} 0){hide_val_str}
-\t\t\t(effects
-\t\t\t\t(font
-\t\t\t\t\t(size {font_size:.2f} {font_size:.2f})
-\t\t\t\t){val_just_str}
-\t\t\t)
-\t\t)
-\t\t(property "Footprint" "{fp}"
-\t\t\t(at {x:.2f} {y:.2f} 0)
-\t\t\t(effects
-\t\t\t\t(font
-\t\t\t\t\t(size 1.27 1.27)
-\t\t\t\t)
-\t\t\t\t(hide yes)
-\t\t\t)
-\t\t)
-\t\t(property "Datasheet" "~"
-\t\t\t(at {x:.2f} {y:.2f} 0)
-\t\t\t(effects
-\t\t\t\t(font
-\t\t\t\t\t(size 1.27 1.27)
-\t\t\t\t)
-\t\t\t\t(hide yes)
-\t\t\t)
-\t\t)
-\t\t(property "Description" "{desc}"
-\t\t\t(at {x:.2f} {y:.2f} 0)
-\t\t\t(effects
-\t\t\t\t(font
-\t\t\t\t\t(size 1.27 1.27)
-\t\t\t\t)
-\t\t\t\t(hide yes)
-\t\t\t)
-\t\t)
-\t\t(pin "1" (uuid "{uuid.uuid4()}"))
-\t\t(pin "2" (uuid "{uuid.uuid4()}"))
-\t)"""
 
 # ==============================================================================
 # 1. SECTION 1: MICROCONTROLLER & CONTROLS (ATtiny1604)
 # ==============================================================================
 # MCU U69 at (80.00, 75.00)
-symbols.append(make_sym("U69", 80.00, 75.00, 0, -12.70, -16.51, "left", 2.54, 16.51, "left"))
+symbols.append(format_sym("U69", 80.00, 75.00, 0, -12.70, -16.51, "left", 2.54, 16.51, "left"))
 
 # MCU Pin 1 (VCC) at (80.00, 57.22)
 # MCU Pin 14 (GND) at (80.00, 92.78)
-# C63 bypass capacitor placed beside MCU at (60.00, 50.00)
-symbols.append(make_sym("C63", 60.00, 50.00, 0, 2.54, -1.27, "left", 2.54, 1.27, "left"))
+# C63 bypass capacitor placed beside MCU at (60.00, 50.00) rot 0
+symbols.append(format_sym("C63", 60.00, 50.00, 0, 2.54, -1.27, "left", 2.54, 1.27, "left"))
 
 # C63 Pin 1 (top, 5V) at (60.00, 46.19)
 # C63 Pin 2 (bottom, GND) at (60.00, 53.81)
@@ -214,8 +148,8 @@ add_global_label("GND", 80.00, 99.06, 270)
 
 # Resistor R1 (470R) on Pin 11 (PA1) leading to DIN
 # MCU Pin 11 is at (95.24, 67.38)
-symbols.append(make_sym("R1", 112.00, 67.38, 90, 0, -3.00, "center", 0, 3.00, "center"))
-# R1 Pin 1 is at (108.19, 67.38), Pin 2 is at (115.81, 67.38)
+symbols.append(format_sym("R1", 112.00, 67.38, 270, 0, -2.54, "center", 0, 2.54, "center"))
+# In rot 270, Pin 1 is at (108.19, 67.38), Pin 2 is at (115.81, 67.38)
 add_wire(95.24, 67.38, 108.19, 67.38)
 add_wire(115.81, 67.38, 138.00, 67.38)
 add_global_label("DIN", 138.00, 67.38, 0)
@@ -259,11 +193,11 @@ add_wire(64.76, 72.46, 25.00, 72.46)
 add_global_label("D31", 25.00, 72.46, 180)
 
 # SW1 (Brightness Dimmer) at (45.00, 115.00)
-symbols.append(make_sym("SW1", 45.00, 115.00, 0, -2.54, -3.81, "center", -2.54, 3.81, "center"))
+symbols.append(format_sym("SW1", 45.00, 115.00, 0, -2.54, -3.81, "center", -2.54, 3.81, "center"))
 add_text("SW1: Brightness Dimmer", 30.00, 107.00, size=1.27)
 
 # SW2 (Mode Selector) at (95.00, 115.00)
-symbols.append(make_sym("SW2", 95.00, 115.00, 0, -2.54, -3.81, "center", -2.54, 3.81, "center"))
+symbols.append(format_sym("SW2", 95.00, 115.00, 0, -2.54, -3.81, "center", -2.54, 3.81, "center"))
 add_text("SW2: Mode Selector", 80.00, 107.00, size=1.27)
 
 # Connect MCU Pin 9 (PB0) to SW1 Pin 1 (at 39.92, 115.00)
@@ -296,10 +230,10 @@ add_global_label("GND", 110.00, 115.00, 0)
 # ==============================================================================
 # 2. SECTION 2: 4-WAY MAGNETIC SNAP BUS CONNECTORS
 # ==============================================================================
-symbols.append(make_sym("U26", 55.00, 180.00, 0, -2.54, -6.00, "center", -2.54, 6.00, "center"))
-symbols.append(make_sym("U28", 115.00, 180.00, 0, -2.54, -6.00, "center", -2.54, 6.00, "center"))
-symbols.append(make_sym("U27", 55.00, 240.00, 0, -2.54, -6.00, "center", -2.54, 6.00, "center"))
-symbols.append(make_sym("U29", 115.00, 240.00, 0, -2.54, -6.00, "center", -2.54, 6.00, "center"))
+symbols.append(format_sym("U26", 55.00, 180.00, 0, -2.54, -6.00, "center", -2.54, 6.00, "center"))
+symbols.append(format_sym("U28", 115.00, 180.00, 0, -2.54, -6.00, "center", -2.54, 6.00, "center"))
+symbols.append(format_sym("U27", 55.00, 240.00, 0, -2.54, -6.00, "center", -2.54, 6.00, "center"))
+symbols.append(format_sym("U29", 115.00, 240.00, 0, -2.54, -6.00, "center", -2.54, 6.00, "center"))
 
 add_text("NORTH EDGE (Female)", 35.00, 168.00, size=1.27, bold=True)
 add_text("EAST EDGE (Male)", 95.00, 168.00, size=1.27, bold=True)
@@ -350,7 +284,6 @@ add_global_label("5V", 90.00, 243.81, 180)
 # ==============================================================================
 # 3. SECTION 3: 6x6 WS2812D ADDRESSABLE RGB LED MATRIX
 # ==============================================================================
-# 6 rows of 6 LEDs
 rows_leds = [
     ("ROW 0", ["U15", "U14", "U13", "U12", "U11", "U10"]),
     ("ROW 1", ["U23", "U22", "U21", "U20", "U19", "U18"]),
@@ -380,7 +313,7 @@ for r, (r_name, led_list) in enumerate(rows_leds):
     for c in range(6):
         led_ref = led_list[c]
         lx = lx_cols[c]
-        symbols.append(make_sym(led_ref, lx, y_row, 0, 4.50, -6.50, "left", 4.50, 6.50, "left", hide_val=True))
+        symbols.append(format_sym(led_ref, lx, y_row, 0, 4.50, -6.50, "left", 4.50, 6.50, "left", hide_val=True))
         
         # Connect VDD (Pin 3) and GND (Pin 2)
         add_junc(lx - 2.54, y_vdd)
@@ -394,7 +327,6 @@ for r, (r_name, led_list) in enumerate(rows_leds):
         x_din_next = lx_cols[c+1] - 2.54
         y_din_next = y_row + 3.81
         
-        # Route: out of DOUT -> up to y_row - 6.35 -> across to x_din_next - 5.08 -> down to y_din_next -> into DIN
         y_top_route = y_row - 6.35
         x_drop = x_din_next - 5.08
         add_wire(x_dout, y_dout, x_dout, y_top_route)
@@ -443,67 +375,63 @@ add_global_label("DOUT", 315.00, y_last_dout, 0)
 # ==============================================================================
 # 4. SECTION 4: PROGRAMMING & MIRROR HEADERS
 # ==============================================================================
-symbols.append(make_sym("J1", 350.00, 50.00, 0, -2.54, -6.50, "center", -2.54, 6.50, "center"))
-symbols.append(make_sym("J2", 390.00, 50.00, 0, -2.54, -6.50, "center", -2.54, 6.50, "center"))
+symbols.append(format_sym("J1", 347.98, 66.04, 0, -2.54, -6.50, "center", -2.54, 6.50, "center"))
+symbols.append(format_sym("J2", 391.16, 66.04, 0, -2.54, -6.50, "center", -2.54, 6.50, "center"))
 
-add_text("J1 (UPDI & EXPANSION)", 335.00, 38.00, size=1.27, bold=True)
-add_text("J2 (MIRROR BUS)", 380.00, 38.00, size=1.27, bold=True)
+add_text("J1 (UPDI & EXPANSION)", 335.00, 35.00, size=1.27, bold=True)
+add_text("J2 (MIRROR BUS)", 380.00, 35.00, size=1.27, bold=True)
 
-# J1 & J2 Pins:
-# J1 Odd pins at 344.92, Even pins at 357.62
-# J2 Odd pins at 384.92, Even pins at 397.62
-headers = [
-    (350.00, 344.92, 357.62),
-    (390.00, 384.92, 397.62)
-]
+# J1:
+add_wire(342.90, 63.50, 330.20, 63.50)
+add_global_label("/RESET/UPDI", 330.20, 63.50, 180)
+add_wire(342.90, 66.04, 330.20, 66.04)
+add_global_label("GND", 330.20, 66.04, 180)
+add_wire(342.90, 68.58, 330.20, 68.58)
+add_global_label("B0/SCL", 330.20, 68.58, 180)
+add_wire(342.90, 71.12, 330.20, 71.12)
+add_global_label("B1/SDA", 330.20, 71.12, 180)
 
-for center_x, odd_x, even_x in headers:
-    # Pin 1: /RESET/UPDI
-    add_wire(odd_x, 46.19, odd_x - 10.00, 46.19)
-    add_global_label("/RESET/UPDI", odd_x - 10.00, 46.19, 180)
-    
-    # Pin 3: GND
-    add_wire(odd_x, 48.73, odd_x - 10.00, 48.73)
-    add_global_label("GND", odd_x - 10.00, 48.73, 180)
-    
-    # Pin 5: B0/SCL
-    add_wire(odd_x, 51.27, odd_x - 10.00, 51.27)
-    add_global_label("B0/SCL", odd_x - 10.00, 51.27, 180)
-    
-    # Pin 7: B1/SDA
-    add_wire(odd_x, 53.81, odd_x - 10.00, 53.81)
-    add_global_label("B1/SDA", odd_x - 10.00, 53.81, 180)
+add_wire(355.60, 63.50, 368.30, 63.50)
+add_global_label("5V", 368.30, 63.50, 0)
+add_wire(355.60, 66.04, 368.30, 66.04)
+add_global_label("DIN", 368.30, 66.04, 0)
+add_wire(355.60, 68.58, 368.30, 68.58)
+add_global_label("GND", 368.30, 68.58, 0)
+add_wire(355.60, 71.12, 368.30, 71.12)
+add_global_label("DOUT", 368.30, 71.12, 0)
 
-    # Pin 2: 5V
-    add_wire(even_x, 46.19, even_x + 10.00, 46.19)
-    add_global_label("5V", even_x + 10.00, 46.19, 0)
-    
-    # Pin 4: DIN
-    add_wire(even_x, 48.73, even_x + 10.00, 48.73)
-    add_global_label("DIN", even_x + 10.00, 48.73, 0)
-    
-    # Pin 6: GND
-    add_wire(even_x, 51.27, even_x + 10.00, 51.27)
-    add_global_label("GND", even_x + 10.00, 51.27, 0)
-    
-    # Pin 8: DOUT
-    add_wire(even_x, 53.81, even_x + 10.00, 53.81)
-    add_global_label("DOUT", even_x + 10.00, 53.81, 0)
+# J2:
+add_wire(386.08, 63.50, 373.38, 63.50)
+add_global_label("/RESET/UPDI", 373.38, 63.50, 180)
+add_wire(386.08, 66.04, 373.38, 66.04)
+add_global_label("GND", 373.38, 66.04, 180)
+add_wire(386.08, 68.58, 373.38, 68.58)
+add_global_label("B0/SCL", 373.38, 68.58, 180)
+add_wire(386.08, 71.12, 373.38, 71.12)
+add_global_label("B1/SDA", 373.38, 71.12, 180)
+
+add_wire(398.78, 63.50, 411.48, 63.50)
+add_global_label("5V", 411.48, 63.50, 0)
+add_wire(398.78, 66.04, 411.48, 66.04)
+add_global_label("DIN", 411.48, 66.04, 0)
+add_wire(398.78, 68.58, 411.48, 68.58)
+add_global_label("GND", 411.48, 68.58, 0)
+add_wire(398.78, 71.12, 411.48, 71.12)
+add_global_label("DOUT", 411.48, 71.12, 0)
 
 # Power Flags
-symbols.append(make_sym("#FLG01", 345.00, 75.00, 0, 0, -2.54, "center", 0, 2.54, "center", hide_val=True))
-add_wire(345.00, 75.00, 335.00, 75.00)
-add_global_label("5V", 335.00, 75.00, 180)
+symbols.append(format_sym("#FLG01", 345.44, 85.00, 0, 0, -2.54, "center", 0, 2.54, "center", hide_val=True))
+add_wire(345.44, 85.00, 335.00, 85.00)
+add_global_label("5V", 335.00, 85.00, 180)
 
-symbols.append(make_sym("#FLG02", 385.00, 75.00, 0, 0, -2.54, "center", 0, 2.54, "center", hide_val=True))
-add_wire(385.00, 75.00, 375.00, 75.00)
-add_global_label("GND", 375.00, 75.00, 180)
+symbols.append(format_sym("#FLG02", 388.62, 85.00, 0, 0, -2.54, "center", 0, 2.54, "center", hide_val=True))
+add_wire(388.62, 85.00, 378.00, 85.00)
+add_global_label("GND", 378.00, 85.00, 180)
 
 
 # ==============================================================================
 # 5. SECTION 5: DECOUPLING CAPACITORS (36x 100nF)
 # ==============================================================================
-# 36 decoupling caps arranged in a clean, spacious 6x6 bank!
 caps_bank = [
     ['C2',  'C3',  'C4',  'C6',  'C8',  'C9'],
     ['C10', 'C11', 'C12', 'C14', 'C15', 'C16'],
@@ -531,7 +459,7 @@ for r in range(6):
     for c in range(6):
         cx = cx_bank[c]
         cap_ref = caps_bank[r][c]
-        symbols.append(make_sym(cap_ref, cx, cy, 0, 2.00, -1.27, "left", 2.00, 1.27, "left", font_size=1.0))
+        symbols.append(format_sym(cap_ref, cx, cy, 0, 2.00, -1.27, "left", 2.00, 1.27, "left", font_size=1.0))
         
         # Connect Pin 1 (top, 5V) to 5V rail
         add_junc(cx, y_rail_5v)
@@ -583,7 +511,7 @@ rectangles = """\t(rectangle
 \t)
 \t(rectangle
 \t\t(start 330.00 16.00)
-\t\t(end 408.00 90.00)
+\t\t(end 414.00 92.00)
 \t\t(stroke
 \t\t\t(width 0.3)
 \t\t\t(type dash)
@@ -595,8 +523,8 @@ rectangles = """\t(rectangle
 \t\t(uuid "{uuid.uuid4()}")
 \t)
 \t(rectangle
-\t\t(start 330.00 95.00)
-\t\t(end 408.00 216.00)
+\t\t(start 330.00 96.00)
+\t\t(end 414.00 216.00)
 \t\t(stroke
 \t\t\t(width 0.3)
 \t\t\t(type dash)
@@ -609,7 +537,7 @@ rectangles = """\t(rectangle
 \t)
 \t(rectangle
 \t\t(start 330.00 220.00)
-\t\t(end 408.00 252.00)
+\t\t(end 414.00 252.00)
 \t\t(stroke
 \t\t\t(width 0.3)
 \t\t\t(type dash)
@@ -642,32 +570,8 @@ add_text("* Complementary Pogo Gender: North/South Female, East/West Male", 334.
 add_text("* Neighbor Detection: D00..D31 form complementary pairs across tiles", 334.00, 233.00, size=1.1)
 add_text("* Firmware: megaTinyCore in Arduino IDE (ATtiny1604, 20MHz, 800kHz)", 334.00, 238.00, size=1.1)
 
-
-with open('pristine_lib_symbols.sexpr', 'r') as f:
-    lib_symbols_block = f.read()
-
-# Also ensure lib_symbols includes "New_Library:WS2812D" without _2
-if 'symbol "New_Library:WS2812D"' not in lib_symbols_block and 'symbol "New_Library:WS2812D_2"' in lib_symbols_block:
-    lib_symbols_block = lib_symbols_block.replace('symbol "New_Library:WS2812D_2"', 'symbol "New_Library:WS2812D"')
-    lib_symbols_block = lib_symbols_block.replace('symbol "WS2812D_2_0_1"', 'symbol "WS2812D_0_1"')
-    lib_symbols_block = lib_symbols_block.replace('symbol "WS2812D_2_1_1"', 'symbol "WS2812D_1_1"')
-
 # Build final schematic
-full_sch = f"""(kicad_sch
-\t(version 20250114)
-\t(generator "eeschema")
-\t(generator_version "10.0")
-\t(uuid "{uuid.uuid4()}")
-\t(paper "A3")
-\t(title_block
-\t\t(title "Modular LED Matrix 6x6 (Bitluni Compatible)")
-\t\t(date "2026-11-01")
-\t\t(rev "v2.1-humanlike")
-\t\t(company "Antigravity Hardware")
-\t\t(comment 1 "6x6 WS2812D Addressable LEDs + ATtiny1604-SS + 4-Way Magnetic Snap Bus")
-\t\t(comment 2 "Serpentine Daisy Chain with Direct Component Wiring")
-\t)
-{lib_symbols_block}
+full_sch = f"""{header}{lib_symbols}
 
 {rectangles}
 
@@ -681,15 +585,9 @@ full_sch = f"""(kicad_sch
 
 {"\n".join(symbols)}
 
-\t(sheet_instances
-\t\t(path "/"
-\t\t\t(page "1")
-\t\t)
-\t)
-)
-"""
+{closing}"""
 
 with open("KiCad/modularmatrix.kicad_sch", "w") as f:
     f.write(full_sch)
 
-print("Successfully generated clean, humanlike modularmatrix.kicad_sch!")
+print(f"Successfully generated clean, humanlike modularmatrix.kicad_sch! (Symbols: {len(symbols)}, Wires: {len(wires)})")

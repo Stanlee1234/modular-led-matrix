@@ -1,7 +1,58 @@
-ERC report (2026-11-01T20:44:20, Encoding UTF8)
+ERC report (2026-11-01T21:02:22, Encoding UTF8)
 Report includes: Errors, Warnings
 
 ***** Sheet /
+[pin_not_connected]: Pin not connected
+    ; error
+    @(342.90 mm, 63.50 mm): Symbol J1 Pin 1 [Pin_1, Passive, Line]
+[pin_not_connected]: Pin not connected
+    ; error
+    @(342.90 mm, 66.04 mm): Symbol J1 Pin 3 [Pin_3, Passive, Line]
+[pin_not_connected]: Pin not connected
+    ; error
+    @(342.90 mm, 68.58 mm): Symbol J1 Pin 5 [Pin_5, Passive, Line]
+[pin_not_connected]: Pin not connected
+    ; error
+    @(342.90 mm, 71.12 mm): Symbol J1 Pin 7 [Pin_7, Passive, Line]
+[pin_not_connected]: Pin not connected
+    ; error
+    @(355.60 mm, 63.50 mm): Symbol J1 Pin 2 [Pin_2, Passive, Line]
+[pin_not_connected]: Pin not connected
+    ; error
+    @(355.60 mm, 66.04 mm): Symbol J1 Pin 4 [Pin_4, Passive, Line]
+[pin_not_connected]: Pin not connected
+    ; error
+    @(355.60 mm, 68.58 mm): Symbol J1 Pin 6 [Pin_6, Passive, Line]
+[pin_not_connected]: Pin not connected
+    ; error
+    @(355.60 mm, 71.12 mm): Symbol J1 Pin 8 [Pin_8, Passive, Line]
+[pin_not_connected]: Pin not connected
+    ; error
+    @(386.08 mm, 63.50 mm): Symbol J2 Pin 1 [Pin_1, Passive, Line]
+[pin_not_connected]: Pin not connected
+    ; error
+    @(386.08 mm, 66.04 mm): Symbol J2 Pin 3 [Pin_3, Passive, Line]
+[pin_not_connected]: Pin not connected
+    ; error
+    @(386.08 mm, 68.58 mm): Symbol J2 Pin 5 [Pin_5, Passive, Line]
+[pin_not_connected]: Pin not connected
+    ; error
+    @(386.08 mm, 71.12 mm): Symbol J2 Pin 7 [Pin_7, Passive, Line]
+[pin_not_connected]: Pin not connected
+    ; error
+    @(398.78 mm, 63.50 mm): Symbol J2 Pin 2 [Pin_2, Passive, Line]
+[pin_not_connected]: Pin not connected
+    ; error
+    @(398.78 mm, 66.04 mm): Symbol J2 Pin 4 [Pin_4, Passive, Line]
+[pin_not_connected]: Pin not connected
+    ; error
+    @(398.78 mm, 68.58 mm): Symbol J2 Pin 6 [Pin_6, Passive, Line]
+[pin_not_connected]: Pin not connected
+    ; error
+    @(398.78 mm, 71.12 mm): Symbol J2 Pin 8 [Pin_8, Passive, Line]
+[isolated_pin_label]: Label connected to only one pin
+    ; warning
+    @(137.16 mm, 68.58 mm): Global Label '/RESET/UPDI'
 [lib_symbol_mismatch]: Symbol 'WS2812D_2' doesn't match copy in library 'New_Library'
     ; warning
     @(165.10 mm, 48.26 mm): Symbol U15 [WS2812D_2]
@@ -110,14 +161,95 @@ Report includes: Errors, Warnings
 [lib_symbol_mismatch]: Symbol 'WS2812D_2' doesn't match copy in library 'New_Library'
     ; warning
     @(285.75 mm, 238.76 mm): Symbol U54 [WS2812D_2]
+[endpoint_off_grid]: Symbol pin or wire end off connection grid
+    ; warning
+    @(283.21 mm, 44.45 mm): Horizontal Wire, length 21.79 mm
+[endpoint_off_grid]: Symbol pin or wire end off connection grid
+    ; warning
+    @(283.21 mm, 82.55 mm): Horizontal Wire, length 21.79 mm
+[endpoint_off_grid]: Symbol pin or wire end off connection grid
+    ; warning
+    @(283.21 mm, 120.65 mm): Horizontal Wire, length 21.79 mm
+[endpoint_off_grid]: Symbol pin or wire end off connection grid
+    ; warning
+    @(283.21 mm, 158.75 mm): Horizontal Wire, length 21.79 mm
+[endpoint_off_grid]: Symbol pin or wire end off connection grid
+    ; warning
+    @(283.21 mm, 196.85 mm): Horizontal Wire, length 21.79 mm
+[endpoint_off_grid]: Symbol pin or wire end off connection grid
+    ; warning
+    @(283.21 mm, 234.95 mm): Horizontal Wire, length 21.79 mm
+[isolated_pin_label]: Label connected to only one pin
+    ; warning
+    @(305.00 mm, 234.95 mm): Global Label 'DOUT'
+[isolated_pin_label]: Label connected to only one pin
+    ; warning
+    @(330.20 mm, 63.50 mm): Global Label '/RESET/UPDI'
+[unconnected_wire_endpoint]: Unconnected wire endpoint
+    ; warning
+    @(345.44 mm, 63.50 mm): Horizontal Wire, length 15.24 mm
+[unconnected_wire_endpoint]: Unconnected wire endpoint
+    ; warning
+    @(345.44 mm, 66.04 mm): Horizontal Wire, length 15.24 mm
+[unconnected_wire_endpoint]: Unconnected wire endpoint
+    ; warning
+    @(345.44 mm, 68.58 mm): Horizontal Wire, length 15.24 mm
+[unconnected_wire_endpoint]: Unconnected wire endpoint
+    ; warning
+    @(345.44 mm, 71.12 mm): Horizontal Wire, length 15.24 mm
 [lib_symbol_mismatch]: Symbol 'PWR_FLAG' doesn't match copy in library 'power'
     ; warning
     @(345.44 mm, 100.33 mm): Symbol #FLG01 [PWR_FLAG]
+[unconnected_wire_endpoint]: Unconnected wire endpoint
+    ; warning
+    @(350.52 mm, 63.50 mm): Horizontal Wire, length 12.70 mm
+[unconnected_wire_endpoint]: Unconnected wire endpoint
+    ; warning
+    @(350.52 mm, 66.04 mm): Horizontal Wire, length 12.70 mm
+[unconnected_wire_endpoint]: Unconnected wire endpoint
+    ; warning
+    @(350.52 mm, 68.58 mm): Horizontal Wire, length 12.70 mm
+[unconnected_wire_endpoint]: Unconnected wire endpoint
+    ; warning
+    @(350.52 mm, 71.12 mm): Horizontal Wire, length 12.70 mm
+[isolated_pin_label]: Label connected to only one pin
+    ; warning
+    @(363.22 mm, 71.12 mm): Global Label 'DOUT'
+[isolated_pin_label]: Label connected to only one pin
+    ; warning
+    @(373.38 mm, 63.50 mm): Global Label '/RESET/UPDI'
+[unconnected_wire_endpoint]: Unconnected wire endpoint
+    ; warning
+    @(388.62 mm, 63.50 mm): Horizontal Wire, length 15.24 mm
+[unconnected_wire_endpoint]: Unconnected wire endpoint
+    ; warning
+    @(388.62 mm, 66.04 mm): Horizontal Wire, length 15.24 mm
+[unconnected_wire_endpoint]: Unconnected wire endpoint
+    ; warning
+    @(388.62 mm, 68.58 mm): Horizontal Wire, length 15.24 mm
+[unconnected_wire_endpoint]: Unconnected wire endpoint
+    ; warning
+    @(388.62 mm, 71.12 mm): Horizontal Wire, length 15.24 mm
 [lib_symbol_mismatch]: Symbol 'PWR_FLAG' doesn't match copy in library 'power'
     ; warning
     @(388.62 mm, 100.33 mm): Symbol #FLG02 [PWR_FLAG]
+[unconnected_wire_endpoint]: Unconnected wire endpoint
+    ; warning
+    @(393.70 mm, 63.50 mm): Horizontal Wire, length 12.70 mm
+[unconnected_wire_endpoint]: Unconnected wire endpoint
+    ; warning
+    @(393.70 mm, 66.04 mm): Horizontal Wire, length 12.70 mm
+[unconnected_wire_endpoint]: Unconnected wire endpoint
+    ; warning
+    @(393.70 mm, 68.58 mm): Horizontal Wire, length 12.70 mm
+[unconnected_wire_endpoint]: Unconnected wire endpoint
+    ; warning
+    @(393.70 mm, 71.12 mm): Horizontal Wire, length 12.70 mm
+[isolated_pin_label]: Label connected to only one pin
+    ; warning
+    @(406.40 mm, 71.12 mm): Global Label 'DOUT'
 
- ** ERC messages: 38  Errors 0  Warnings 38
+ ** ERC messages: 82  Errors 16  Warnings 66
 
  ** Ignored checks:
     - Global label only appears once in the schematic
