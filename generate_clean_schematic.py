@@ -42,15 +42,16 @@ texts = []
 
 def format_sym(ref, x, y, rot=0, ref_ox=2.54, ref_oy=-1.27, ref_just="left", val_ox=2.54, val_oy=1.27, val_just="left", hide_val=False, font_size=1.27):
     block = sym_by_ref[ref]
-    block = re.sub(r'(\t\(symbol\n\t\t\(lib_id\s+\"[^\"]+?\"\n\t\t\(at\s+)[\d\.\-]+\s+[\d\.\-]+(?:\s+[\d\.\-]+)?(\))', rf'\g<1>{x:.2f} {y:.2f} {rot}\2', block, count=1)
+    sub_pattern = r'(\t\(symbol\s+\(lib_id\s+\"[^\"]+?\"\)\s+\(at\s+)[\d\.\-]+\s+[\d\.\-]+(?:\s+[\d\.\-]+)?(\))'
+    block = re.sub(sub_pattern, rf'\g<1>{x:.2f} {y:.2f} {rot}\2', block, count=1)
     
     rx, ry = x + ref_ox, y + ref_oy
-    ref_just_str = f'\n\t\t\t\t(justify {ref_just})' if ref_just else ''
+    ref_just_str = f'\n\t\t\t\t(justify {ref_just})' if ref_just and ref_just != "center" else ''
     ref_repl = f'(property "Reference" "{ref}"\n\t\t\t(at {rx:.2f} {ry:.2f} 0)\n\t\t\t(show_name no)\n\t\t\t(do_not_autoplace no)\n\t\t\t(effects\n\t\t\t\t(font\n\t\t\t\t\t(size {font_size:.2f} {font_size:.2f})\n\t\t\t\t){ref_just_str}\n\t\t\t)\n\t\t)'
     block = re.sub(r'\(property\s+\"Reference\"\s+\"[^\"]+?\".*?\n\t\t\)', ref_repl, block, flags=re.DOTALL, count=1)
     
     vx, vy = x + val_ox, y + val_oy
-    val_just_str = f'\n\t\t\t\t(justify {val_just})' if val_just else ''
+    val_just_str = f'\n\t\t\t\t(justify {val_just})' if val_just and val_just != "center" else ''
     val_hide_str = '\n\t\t\t(hide yes)' if hide_val else ''
     val_m = re.search(r'\(property\s+\"Value\"\s+\"([^\"]+?)\"', block)
     val_text = val_m.group(1) if val_m else ""
