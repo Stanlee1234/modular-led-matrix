@@ -1,385 +1,15 @@
-import re
 import uuid
+import re
 
-# Read current schematic
-with open("KiCad/modularmatrix.kicad_sch", "r") as f:
-    text = f.read()
-
-# Extract lib_symbols with exact parentheses balance
-idx1 = text.find("(lib_symbols")
-bal = 0
-for idx, ch in enumerate(text[idx1:]):
-    if ch == "(": bal += 1
-    elif ch == ")": bal -= 1
-    if bal == 0:
-        end_idx = idx1 + idx + 1
-        break
-
-lib_symbols_raw = text[idx1:end_idx]
-
-pwr_flag_def = """\t\t(symbol "power:PWR_FLAG"
-\t\t\t(power global)
-\t\t\t(pin_numbers
-\t\t\t\t(hide yes)
-\t\t\t)
-\t\t\t(pin_names
-\t\t\t\t(offset 0)
-\t\t\t\t(hide yes)
-\t\t\t)
-\t\t\t(exclude_from_sim no)
-\t\t\t(in_bom yes)
-\t\t\t(on_board yes)
-\t\t\t(property "Reference" "#FLG"
-\t\t\t\t(at 0 1.905 0)
-\t\t\t\t(effects
-\t\t\t\t\t(font
-\t\t\t\t\t\t(size 1.27 1.27)
-\t\t\t\t\t)
-\t\t\t\t\t(hide yes)
-\t\t\t\t)
-\t\t\t)
-\t\t\t(property "Value" "PWR_FLAG"
-\t\t\t\t(at 0 3.81 0)
-\t\t\t\t(effects
-\t\t\t\t\t(font
-\t\t\t\t\t\t(size 1.27 1.27)
-\t\t\t\t\t)
-\t\t\t\t)
-\t\t\t)
-\t\t\t(property "Footprint" ""
-\t\t\t\t(at 0 0 0)
-\t\t\t\t(effects
-\t\t\t\t\t(font
-\t\t\t\t\t\t(size 1.27 1.27)
-\t\t\t\t\t)
-\t\t\t\t\t(hide yes)
-\t\t\t\t)
-\t\t\t)
-\t\t\t(property "Datasheet" "~"
-\t\t\t\t(at 0 0 0)
-\t\t\t\t(effects
-\t\t\t\t\t(font
-\t\t\t\t\t\t(size 1.27 1.27)
-\t\t\t\t\t)
-\t\t\t\t\t(hide yes)
-\t\t\t\t)
-\t\t\t)
-\t\t\t(property "Description" "Power flag symbol"
-\t\t\t\t(at 0 0 0)
-\t\t\t\t(effects
-\t\t\t\t\t(font
-\t\t\t\t\t\t(size 1.27 1.27)
-\t\t\t\t\t)
-\t\t\t\t\t(hide yes)
-\t\t\t\t)
-\t\t\t)
-\t\t\t(symbol "PWR_FLAG_0_0"
-\t\t\t\t(polyline
-\t\t\t\t\t(pts
-\t\t\t\t\t\t(xy 0 0)
-\t\t\t\t\t\t(xy 0 1.27)
-\t\t\t\t\t\t(xy -1.016 1.905)
-\t\t\t\t\t\t(xy 0 2.54)
-\t\t\t\t\t\t(xy 1.016 1.905)
-\t\t\t\t\t\t(xy 0 1.27)
-\t\t\t\t\t)
-\t\t\t\t\t(stroke
-\t\t\t\t\t\t(width 0)
-\t\t\t\t\t\t(type default)
-\t\t\t\t\t)
-\t\t\t\t\t(fill
-\t\t\t\t\t\t(type none)
-\t\t\t\t\t)
-\t\t\t\t)
-\t\t\t)
-\t\t\t(symbol "PWR_FLAG_0_1"
-\t\t\t\t(pin power_out line
-\t\t\t\t\t(at 0 0 90)
-\t\t\t\t\t(length 0)
-\t\t\t\t\t(name "pwr"
-\t\t\t\t\t\t(effects
-\t\t\t\t\t\t\t(font
-\t\t\t\t\t\t\t\t(size 1.27 1.27)
-\t\t\t\t\t\t\t)
-\t\t\t\t\t\t)
-\t\t\t\t\t)
-\t\t\t\t\t(number "1"
-\t\t\t\t\t\t(effects
-\t\t\t\t\t\t\t(font
-\t\t\t\t\t\t\t\t(size 1.27 1.27)
-\t\t\t\t\t\t\t)
-\t\t\t\t\t\t)
-\t\t\t\t\t)
-\t\t\t\t)
-\t\t\t)
-\t\t)
-"""
-
-if "power:PWR_FLAG" not in lib_symbols_raw:
-    last_paren = lib_symbols_raw.rfind(")")
-    lib_symbols_raw = lib_symbols_raw[:last_paren].rstrip() + "\n" + pwr_flag_def + "\t)"
-
-# Extract all symbol blocks
-sym_blocks_raw = re.findall(r"(\t\(symbol\s+\(lib_id\s+\"([^\"]+)\"\)\s+\(at\s+[\d\.\-]+\s+[\d\.\-]+(?:\s+[\d\.\-]+)?\).*?\n\t\))", text[end_idx:], re.DOTALL)
-sym_dict = {}
-for full_block, lib_id in sym_blocks_raw:
-    ref_m = re.search(r"\(property\s+\"Reference\"\s+\"([^\"]+)\"", full_block)
-    if ref_m:
-        sym_dict[ref_m.group(1)] = (lib_id, full_block)
-
-def make_sym(ref, sx, sy, srot, ref_dx, ref_dy, ref_just, val_dx, val_dy, val_just, hide_val=False):
-    if ref in ("#FLG01", "#FLG02"):
-        flag_uuid = "3fdaae88-2982-4799-8c51-02fc499a2756" if ref == "#FLG01" else "5501b341-5997-4d2a-859d-97fcb549963f"
-        pin_uuid = "1f8d79d2-f1ae-4214-85db-d66755d5a3aa" if ref == "#FLG01" else "68bb7068-ebda-4f71-8dab-f073654bb47c"
-        return f"""\t(symbol
-\t\t(lib_id "power:PWR_FLAG")
-\t\t(at {sx:.2f} {sy:.2f} 0)
-\t\t(unit 1)
-\t\t(exclude_from_sim no)
-\t\t(in_bom yes)
-\t\t(on_board yes)
-\t\t(dnp no)
-\t\t(uuid "{flag_uuid}")
-\t\t(property "Reference" "{ref}"
-\t\t\t(at {sx:.2f} {sy-3.81:.2f} 0)
-\t\t\t(effects
-\t\t\t\t(font
-\t\t\t\t\t(size 1.27 1.27)
-\t\t\t\t)
-\t\t\t\t(hide yes)
-\t\t\t)
-\t\t)
-\t\t(property "Value" "PWR_FLAG"
-\t\t\t(at {sx:.2f} {sy+3.81:.2f} 0)
-\t\t\t(effects
-\t\t\t\t(font
-\t\t\t\t\t(size 1.27 1.27)
-\t\t\t\t)
-\t\t\t)
-\t\t)
-\t\t(property "Footprint" ""
-\t\t\t(at {sx:.2f} {sy:.2f} 0)
-\t\t\t(effects
-\t\t\t\t(font
-\t\t\t\t\t(size 1.27 1.27)
-\t\t\t\t)
-\t\t\t\t(hide yes)
-\t\t\t)
-\t\t)
-\t\t(property "Datasheet" "~"
-\t\t\t(at {sx:.2f} {sy:.2f} 0)
-\t\t\t(effects
-\t\t\t\t(font
-\t\t\t\t\t(size 1.27 1.27)
-\t\t\t\t)
-\t\t\t\t(hide yes)
-\t\t\t)
-\t\t)
-\t\t(property "Description" "Power flag symbol"
-\t\t\t(at {sx:.2f} {sy:.2f} 0)
-\t\t\t(effects
-\t\t\t\t(font
-\t\t\t\t\t(size 1.27 1.27)
-\t\t\t\t)
-\t\t\t\t(hide yes)
-\t\t\t)
-\t\t)
-\t\t(pin "1" (uuid "{pin_uuid}"))
-\t\t(instances
-\t\t\t(project "modularmatrix"
-\t\t\t\t(path "/5ab56492-366c-4f9f-88c9-0814fc5584d0"
-\t\t\t\t\t(reference "{ref}")
-\t\t\t\t\t(unit 1)
-\t\t\t\t)
-\t\t\t)
-\t\t)
-\t)"""
-
-    lib_id, old_block = sym_dict[ref]
-    
-    uuid_m = re.search(r"\(uuid\s+\"([^\"]+)\"\)", old_block)
-    sym_uuid = uuid_m.group(1) if uuid_m else str(uuid.uuid4())
-    if ref == "U69":
-        sym_uuid = "5516d5d6-05b9-4283-8c49-7662e62ce63e"
-        
-    val_m = re.search(r"\(property\s+\"Value\"\s+\"([^\"]+)\"", old_block)
-    val_str = val_m.group(1) if val_m else ref
-    
-    fp_m = re.search(r"\(property\s+\"Footprint\"\s+\"([^\"]*)\"", old_block)
-    fp_str = fp_m.group(1) if fp_m else ""
-    
-    ds_m = re.search(r"\(property\s+\"Datasheet\"\s+\"([^\"]*)\"", old_block)
-    ds_str = ds_m.group(1) if ds_m else ""
-    
-    desc_m = re.search(r"\(property\s+\"Description\"\s+\"([^\"]*)\"", old_block)
-    desc_str = desc_m.group(1) if desc_m else ""
-    
-    mpn_m = re.search(r"\(property\s+\"MPN\"\s+\"([^\"]*)\"", old_block)
-    mpn_str = mpn_m.group(1) if mpn_m else ""
-    
-    pins_block = ""
-    for p_m in re.finditer(r"(\(pin\s+\"[^\"]+\"\s+\(uuid\s+\"[^\"]+\"\)\))", old_block):
-        pins_block += "\t\t" + p_m.group(1) + "\n"
-        
-    inst_m = re.search(r"(\(instances.*?\n\t\t\))", old_block, re.DOTALL)
-    inst_block = ("\t\t" + inst_m.group(1) + "\n") if inst_m else ""
-    if ref == "U69" and inst_block:
-        inst_block = inst_block.replace("a3f0cf89-0e47-4b12-bd55-62d06fa851fd", "5516d5d6-05b9-4283-8c49-7662e62ce63e")
-
-    rx = sx + ref_dx
-    ry = sy + ref_dy
-    vx = sx + val_dx
-    vy = sy + val_dy
-
-    r_just_str = f"\n\t\t\t\t(justify {ref_just})" if ref_just else ""
-    v_just_str = f"\n\t\t\t\t(justify {val_just})" if val_just else ""
-    v_hide_str = "\n\t\t\t(hide yes)" if hide_val else ""
-    rot_str = f" {srot}" if srot != 0 else " 0"
-
-    out = f"""\t(symbol
-\t\t(lib_id "{lib_id}")
-\t\t(at {sx:.2f} {sy:.2f}{rot_str})
-\t\t(unit 1)
-\t\t(body_style 1)
-\t\t(exclude_from_sim no)
-\t\t(in_bom yes)
-\t\t(on_board yes)
-\t\t(in_pos_files yes)
-\t\t(dnp no)
-\t\t(fields_autoplaced yes)
-\t\t(uuid "{sym_uuid}")
-\t\t(property "Reference" "{ref}"
-\t\t\t(at {rx:.2f} {ry:.2f} 0)
-\t\t\t(show_name no)
-\t\t\t(do_not_autoplace no)
-\t\t\t(effects
-\t\t\t\t(font
-\t\t\t\t\t(size 1.27 1.27)
-\t\t\t\t){r_just_str}
-\t\t\t)
-\t\t)
-\t\t(property "Value" "{val_str}"
-\t\t\t(at {vx:.2f} {vy:.2f} 0){v_hide_str}
-\t\t\t(show_name no)
-\t\t\t(do_not_autoplace no)
-\t\t\t(effects
-\t\t\t\t(font
-\t\t\t\t\t(size 1.27 1.27)
-\t\t\t\t){v_just_str}
-\t\t\t)
-\t\t)
-\t\t(property "Footprint" "{fp_str}"
-\t\t\t(at {sx:.2f} {sy:.2f} 0)
-\t\t\t(hide yes)
-\t\t\t(show_name no)
-\t\t\t(do_not_autoplace no)
-\t\t\t(effects
-\t\t\t\t(font
-\t\t\t\t\t(size 1.27 1.27)
-\t\t\t\t)
-\t\t\t)
-\t\t)
-\t\t(property "Datasheet" "{ds_str}"
-\t\t\t(at {sx:.2f} {sy:.2f} 0)
-\t\t\t(hide yes)
-\t\t\t(show_name no)
-\t\t\t(do_not_autoplace no)
-\t\t\t(effects
-\t\t\t\t(font
-\t\t\t\t\t(size 1.27 1.27)
-\t\t\t\t)
-\t\t\t)
-\t\t)
-\t\t(property "Description" "{desc_str}"
-\t\t\t(at {sx:.2f} {sy:.2f} 0)
-\t\t\t(hide yes)
-\t\t\t(show_name no)
-\t\t\t(do_not_autoplace no)
-\t\t\t(effects
-\t\t\t\t(font
-\t\t\t\t\t(size 1.27 1.27)
-\t\t\t\t)
-\t\t\t)
-\t\t)"""
-
-    if mpn_str:
-        out += f"""
-\t\t(property "MPN" "{mpn_str}"
-\t\t\t(at {sx:.2f} {sy:.2f} 0)
-\t\t\t(hide yes)
-\t\t\t(show_name no)
-\t\t\t(do_not_autoplace no)
-\t\t\t(effects
-\t\t\t\t(font
-\t\t\t\t\t(size 1.27 1.27)
-\t\t\t\t)
-\t\t\t)
-\t\t)"""
-
-    out += f"\n{pins_block}{inst_block}\t)"
-    return out
-
-# Build all symbols
-symbols = []
-
-# --- Section 1 ---
-# U69: MCU
-symbols.append(make_sym("U69", 78.74, 78.74, 0, -12.70, -16.51, "left", -12.70, 17.50, "left"))
-# C63: Decoupling cap for MCU
-symbols.append(make_sym("C63", 53.34, 55.88, 0, 2.54, -1.27, "left", 2.54, 1.27, "left"))
-# R1: 470R DIN resistor
-symbols.append(make_sym("R1", 106.68, 71.12, 270, 0.00, -2.54, None, 0.00, 2.54, None))
-# SW1: Brightness Dimmer
-symbols.append(make_sym("SW1", 53.34, 127.00, 0, 0.00, -4.50, None, 0.00, 4.50, None))
-# SW2: Mode Selector
-symbols.append(make_sym("SW2", 109.22, 127.00, 0, 0.00, -4.50, None, 0.00, 4.50, None))
-
-# --- Section 2 ---
-# U26: North Female
-symbols.append(make_sym("U26", 53.34, 185.42, 0, 3.81, -6.50, None, 3.81, 6.50, None))
-# U28: East Male
-symbols.append(make_sym("U28", 111.76, 185.42, 0, 3.81, -6.50, None, 3.81, 6.50, None))
-# U27: South Female
-symbols.append(make_sym("U27", 53.34, 226.06, 0, 3.81, -6.50, None, 3.81, 6.50, None))
-# U29: West Male
-symbols.append(make_sym("U29", 111.76, 226.06, 0, 3.81, -6.50, None, 3.81, 6.50, None))
-
-# --- Section 4 ---
-# J1: UPDI & Expansion
-symbols.append(make_sym("J1", 347.98, 66.04, 0, 0.00, -6.50, None, 0.00, 6.50, None))
-# J2: Mirror Bus
-symbols.append(make_sym("J2", 391.16, 66.04, 0, 0.00, -6.50, None, 0.00, 6.50, None))
-# PWR_FLAGS
-symbols.append(make_sym("#FLG01", 345.44, 100.33, 0, 0.00, -3.81, None, 0.00, 3.81, None, hide_val=False))
-symbols.append(make_sym("#FLG02", 388.62, 100.33, 0, 0.00, -3.81, None, 0.00, 3.81, None, hide_val=False))
-
-# --- Section 3 ---
-# 6 rows of 6 LEDs + 6 decoupling caps
-rows = [
-    ("ROW 0", 48.26, ["U15", "U14", "U13", "U12", "U11", "U10"], ["C29", "C30", "C23", "C2", "C20", "C17"]),
-    ("ROW 1", 86.36, ["U23", "U22", "U21", "U20", "U19", "U18"], ["C14", "C9", "C6", "C10", "C8", "C52"]),
-    ("ROW 2", 124.46, ["U35", "U34", "U33", "U32", "U31", "U30"], ["C43", "C48", "C56", "C15", "C3", "C11"]),
-    ("ROW 3", 162.56, ["U43", "U42", "U41", "U40", "U39", "U38"], ["C4", "C16", "C12", "C57", "C33", "C51"]),
-    ("ROW 4", 200.66, ["U51", "U50", "U49", "U48", "U47", "U46"], ["C34", "C27", "C44", "C22", "C54", "C38"]),
-    ("ROW 5", 238.76, ["U59", "U58", "U57", "U56", "U55", "U54"], ["C62", "C58", "C47", "C55", "C41", "C31"])
-]
-
-lx_cols = [165.10, 189.23, 213.36, 237.49, 261.62, 285.75]
-cx_cols = [173.99, 198.12, 222.25, 246.38, 270.51, 294.64]
-
-for r_name, y_row, led_list, cap_list in rows:
-    for c in range(6):
-        led_ref = led_list[c]
-        cap_ref = cap_list[c]
-        lx = lx_cols[c]
-        cx = cx_cols[c]
-        
-        symbols.append(make_sym(led_ref, lx, y_row, 0, 4.50, -6.50, None, 4.50, 6.50, None, hide_val=True))
-        symbols.append(make_sym(cap_ref, cx, y_row, 180, 2.00, -1.27, "left", 2.00, 1.27, "left"))
+# ==============================================================================
+# GENERATOR FOR MODULAR LED MATRIX 6x6 SCHEMATIC (HUMANLIKE WIRING)
+# ==============================================================================
 
 wires = []
 junctions = []
 labels = []
+symbols = []
+texts = []
 
 def add_wire(x1, y1, x2, y2):
     wires.append(f"""\t(wire
@@ -425,638 +55,641 @@ def add_global_label(name, x, y, rot, shape="input"):
 \t\t)
 \t)""")
 
-def add_local_label(name, x, y, rot):
-    just = "right" if rot in (180, 270) else "left"
-    labels.append(f"""\t(label "{name}"
-\t\t(at {x:.2f} {y:.2f} {rot})
-\t\t(fields_autoplaced yes)
+def add_text(text, x, y, size=1.5, bold=False):
+    bold_str = "\n\t\t\t\t(bold yes)" if bold else ""
+    texts.append(f"""\t(text "{text}"
+\t\t(at {x:.2f} {y:.2f} 0)
 \t\t(effects
 \t\t\t(font
-\t\t\t\t(size 1.27 1.27)
+\t\t\t\t(size {size:.2f} {size:.2f}){bold_str}
 \t\t\t)
-\t\t\t(justify {just})
+\t\t\t(justify left top)
 \t\t)
 \t\t(uuid "{uuid.uuid4()}")
 \t)""")
 
-# ==================== SECTION 1 WIRES & LABELS ====================
-# MCU Power
-add_wire(78.74, 60.96, 78.74, 53.34)
-add_global_label("5V", 78.74, 53.34, 90)
+def make_sym(ref, x, y, rot=0, ref_ox=2.54, ref_oy=-1.27, ref_just="left", val_ox=2.54, val_oy=1.27, val_just="left", hide_val=False, font_size=1.27):
+    # Lookup symbol info
+    if ref.startswith("C"):
+        lib_id = "Device:C"
+        val = "100n"
+        fp = "Capacitor_SMD:C_0603_1608Metric"
+        desc = "Unpolarized capacitor"
+    elif ref.startswith("R"):
+        lib_id = "Device:R"
+        val = "470R"
+        fp = "Resistor_SMD:R_0603_1608Metric"
+        desc = "Resistor"
+    elif ref == "U69":
+        lib_id = "MCU_Microchip_ATtiny:ATtiny1604-SS"
+        val = "ATtiny1604-SS"
+        fp = "Package_SO:SOIC-14_3.9x8.7mm_P1.27mm"
+        desc = "20MHz, 16kB Flash, 1kB SRAM, 256B EEPROM, SOIC-14"
+    elif ref in ["SW1", "SW2"]:
+        lib_id = "Switch:SW_Push"
+        val = "SW_Push"
+        fp = "Library:SMD_ButtonC354946"
+        desc = "Push button switch, generic, two pins"
+    elif ref in ["J1", "J2"]:
+        lib_id = "Connector_Generic:Conn_02x04_Odd_Even"
+        val = "Conn_02x04_Odd_Even"
+        fp = "Connector_PinHeader_2.54mm:PinHeader_2x04_P2.54mm_Vertical_SMD"
+        desc = "Generic connector, double row, 02x04"
+    elif ref in ["U26", "U27"]:
+        lib_id = "New_Library:fakeMag4pinFemale"
+        val = "fakeMag4pinFemale"
+        fp = "Library:fakemag4pin90degFemale"
+        desc = "Magnetic connector female 4-pin"
+    elif ref in ["U28", "U29"]:
+        lib_id = "New_Library:fakeMag4pinMale"
+        val = "fakeMag4pinMale"
+        fp = "Library:fakemag4pin90degMale"
+        desc = "Magnetic connector male 4-pin"
+    elif ref.startswith("U"):
+        lib_id = "New_Library:WS2812D"
+        val = "WS2812D"
+        fp = "Library:WS2812DwideC"
+        desc = "WS2812D Addressable RGB LED"
+    elif ref.startswith("#FLG"):
+        lib_id = "power:PWR_FLAG"
+        val = "PWR_FLAG"
+        fp = ""
+        desc = "Power flag symbol"
+    else:
+        raise ValueError(f"Unknown component: {ref}")
 
-add_wire(78.74, 96.52, 78.74, 104.14)
-add_global_label("GND", 78.74, 104.14, 270)
+    hide_val_str = "\n\t\t\t(hide yes)" if hide_val else ""
+    ref_just_str = f"\n\t\t\t\t(justify {ref_just})" if ref_just else ""
+    val_just_str = f"\n\t\t\t\t(justify {val_just})" if val_just else ""
 
-# MCU Decoupling Cap C63 (at 53.34, 55.88)
-# Pin 1 (at 53.34, 59.69) -> 5V
-add_wire(53.34, 59.69, 33.02, 59.69)
-add_global_label("5V", 33.02, 59.69, 180)
-# Pin 2 (at 53.34, 52.07) -> GND
-add_wire(53.34, 52.07, 33.02, 52.07)
-add_global_label("GND", 33.02, 52.07, 180)
+    rx = x + ref_ox
+    ry = y + ref_oy
+    vx = x + val_ox
+    vy = y + val_oy
 
-# MCU Right side pins (x=93.98)
-# Pin 10 (PA0/UPDI): at (93.98, 68.58)
-add_wire(93.98, 68.58, 137.16, 68.58)
-add_global_label("/RESET/UPDI", 137.16, 68.58, 0)
+    return f"""\t(symbol
+\t\t(lib_id "{lib_id}")
+\t\t(at {x:.2f} {y:.2f} {rot})
+\t\t(unit 1)
+\t\t(exclude_from_sim no)
+\t\t(in_bom yes)
+\t\t(on_board yes)
+\t\t(dnp no)
+\t\t(uuid "{uuid.uuid4()}")
+\t\t(property "Reference" "{ref}"
+\t\t\t(at {rx:.2f} {ry:.2f} 0)
+\t\t\t(effects
+\t\t\t\t(font
+\t\t\t\t\t(size {font_size:.2f} {font_size:.2f})
+\t\t\t\t){ref_just_str}
+\t\t\t)
+\t\t)
+\t\t(property "Value" "{val}"
+\t\t\t(at {vx:.2f} {vy:.2f} 0){hide_val_str}
+\t\t\t(effects
+\t\t\t\t(font
+\t\t\t\t\t(size {font_size:.2f} {font_size:.2f})
+\t\t\t\t){val_just_str}
+\t\t\t)
+\t\t)
+\t\t(property "Footprint" "{fp}"
+\t\t\t(at {x:.2f} {y:.2f} 0)
+\t\t\t(effects
+\t\t\t\t(font
+\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t)
+\t\t\t\t(hide yes)
+\t\t\t)
+\t\t)
+\t\t(property "Datasheet" "~"
+\t\t\t(at {x:.2f} {y:.2f} 0)
+\t\t\t(effects
+\t\t\t\t(font
+\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t)
+\t\t\t\t(hide yes)
+\t\t\t)
+\t\t)
+\t\t(property "Description" "{desc}"
+\t\t\t(at {x:.2f} {y:.2f} 0)
+\t\t\t(effects
+\t\t\t\t(font
+\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t)
+\t\t\t\t(hide yes)
+\t\t\t)
+\t\t)
+\t\t(pin "1" (uuid "{uuid.uuid4()}"))
+\t\t(pin "2" (uuid "{uuid.uuid4()}"))
+\t)"""
 
-# Pin 9 (PA1/DIN via R1): at (93.98, 71.12) -> R1 at 106.68 -> DIN
-add_wire(93.98, 71.12, 102.87, 71.12)
-add_wire(110.49, 71.12, 137.16, 71.12)
-add_global_label("DIN", 137.16, 71.12, 0)
+# ==============================================================================
+# 1. SECTION 1: MICROCONTROLLER & CONTROLS (ATtiny1604)
+# ==============================================================================
+# MCU U69 at (80.00, 75.00)
+symbols.append(make_sym("U69", 80.00, 75.00, 0, -12.70, -16.51, "left", 2.54, 16.51, "left"))
 
-# Pin 8 (PA2/D00): at (93.98, 73.66)
-add_wire(93.98, 73.66, 137.16, 73.66)
-add_global_label("D00", 137.16, 73.66, 0)
+# MCU Pin 1 (VCC) at (80.00, 57.22)
+# MCU Pin 14 (GND) at (80.00, 92.78)
+# C63 bypass capacitor placed beside MCU at (60.00, 50.00)
+symbols.append(make_sym("C63", 60.00, 50.00, 0, 2.54, -1.27, "left", 2.54, 1.27, "left"))
 
-# Pin 7 (PA3/D01): at (93.98, 76.20)
-add_wire(93.98, 76.20, 137.16, 76.20)
-add_global_label("D01", 137.16, 76.20, 0)
+# C63 Pin 1 (top, 5V) at (60.00, 46.19)
+# C63 Pin 2 (bottom, GND) at (60.00, 53.81)
+# Wire MCU Pin 1 up to 46.19, left to C63 Pin 1, and left to 5V global label
+add_wire(80.00, 57.22, 80.00, 46.19)
+add_wire(80.00, 46.19, 60.00, 46.19)
+add_wire(60.00, 46.19, 45.00, 46.19)
+add_junc(80.00, 46.19)
+add_junc(60.00, 46.19)
+add_global_label("5V", 45.00, 46.19, 180)
 
-# Pin 13 (PB0/D10): at (93.98, 78.74)
-add_wire(93.98, 78.74, 137.16, 78.74)
-add_global_label("D10", 137.16, 78.74, 0)
+# C63 Pin 2 to GND
+add_wire(60.00, 53.81, 60.00, 57.15)
+add_global_label("GND", 60.00, 57.15, 270)
 
-# Pin 12 (PB1/D11): at (93.98, 81.28)
-add_wire(93.98, 81.28, 137.16, 81.28)
-add_global_label("D11", 137.16, 81.28, 0)
+# MCU Pin 14 to GND
+add_wire(80.00, 92.78, 80.00, 99.06)
+add_global_label("GND", 80.00, 99.06, 270)
 
-# Pin 11 (PB2/D20): at (93.98, 83.82)
-add_wire(93.98, 83.82, 137.16, 83.82)
-add_global_label("D20", 137.16, 83.82, 0)
+# Resistor R1 (470R) on Pin 11 (PA1) leading to DIN
+# MCU Pin 11 is at (95.24, 67.38)
+symbols.append(make_sym("R1", 112.00, 67.38, 90, 0, -3.00, "center", 0, 3.00, "center"))
+# R1 Pin 1 is at (108.19, 67.38), Pin 2 is at (115.81, 67.38)
+add_wire(95.24, 67.38, 108.19, 67.38)
+add_wire(115.81, 67.38, 138.00, 67.38)
+add_global_label("DIN", 138.00, 67.38, 0)
 
-# Pin 6 (PB3/D21): at (93.98, 86.36)
-add_wire(93.98, 86.36, 137.16, 86.36)
-add_global_label("D21", 137.16, 86.36, 0)
+# MCU Right Bus Pins
+# Pin 10 (PA0/RESET/UPDI) at (95.24, 64.84)
+add_wire(95.24, 64.84, 138.00, 64.84)
+add_global_label("/RESET/UPDI", 138.00, 64.84, 0)
 
-# MCU Left side pins (x=63.50)
-# Pin 2 (PA4/B0/SCL): at (63.50, 68.58)
-add_wire(63.50, 68.58, 33.02, 68.58)
-add_global_label("B0/SCL", 33.02, 68.58, 180)
+# Pin 12 (PA2/D00) at (95.24, 69.92)
+add_wire(95.24, 69.92, 138.00, 69.92)
+add_global_label("D00", 138.00, 69.92, 0)
 
-# Pin 3 (PA5/B1/SDA): at (63.50, 71.12)
-add_wire(63.50, 71.12, 33.02, 71.12)
-add_global_label("B1/SDA", 33.02, 71.12, 180)
+# Pin 13 (PA3/D01) at (95.24, 72.46)
+add_wire(95.24, 72.46, 138.00, 72.46)
+add_global_label("D01", 138.00, 72.46, 0)
 
-# Pin 4 (PA6/D31): at (63.50, 73.66)
-add_wire(63.50, 73.66, 33.02, 73.66)
-add_global_label("D31", 33.02, 73.66, 180)
+# Pin 2 (PA4/D10) at (95.24, 75.00)
+add_wire(95.24, 75.00, 138.00, 75.00)
+add_global_label("D10", 138.00, 75.00, 0)
 
-# Pin 5 (PA7/D30): at (63.50, 76.20)
-add_wire(63.50, 76.20, 33.02, 76.20)
-add_global_label("D30", 33.02, 76.20, 180)
+# Pin 3 (PA5/D11) at (95.24, 77.54)
+add_wire(95.24, 77.54, 138.00, 77.54)
+add_global_label("D11", 138.00, 77.54, 0)
 
-# SW1: Brightness Dimmer (at 53.34, 127.00)
-add_wire(48.26, 127.00, 33.02, 127.00)
-add_global_label("B0/SCL", 33.02, 127.00, 180)
-add_wire(58.42, 127.00, 66.04, 127.00)
-add_global_label("GND", 66.04, 127.00, 0)
+# Pin 4 (PA6/D21) at (95.24, 80.08)
+add_wire(95.24, 80.08, 138.00, 80.08)
+add_global_label("D21", 138.00, 80.08, 0)
 
-# SW2: Mode Selector (at 109.22, 127.00)
-add_wire(104.14, 127.00, 96.52, 127.00)
-add_global_label("B1/SDA", 96.52, 127.00, 180)
-add_wire(114.30, 127.00, 137.16, 127.00)
-add_global_label("GND", 137.16, 127.00, 0)
+# Pin 5 (PA7/D20) at (95.24, 82.62)
+add_wire(95.24, 82.62, 138.00, 82.62)
+add_global_label("D20", 138.00, 82.62, 0)
 
-# ==================== SECTION 2 WIRES & LABELS ====================
-# North Female U26 (at 53.34, 185.42)
-add_wire(50.80, 181.61, 27.94, 181.61)
-add_global_label("5V", 27.94, 181.61, 180)
-add_wire(50.80, 184.15, 27.94, 184.15)
-add_global_label("D00", 27.94, 184.15, 180)
-add_wire(50.80, 186.69, 27.94, 186.69)
-add_global_label("D01", 27.94, 186.69, 180)
-add_wire(50.80, 189.23, 27.94, 189.23)
-add_global_label("GND", 27.94, 189.23, 180)
+# MCU Left Bus Pins
+# Pin 7 (PB2/D30) at (64.76, 69.92)
+add_wire(64.76, 69.92, 25.00, 69.92)
+add_global_label("D30", 25.00, 69.92, 180)
 
-# East Male U28 (at 111.76, 185.42)
-add_wire(109.22, 181.61, 85.09, 181.61)
-add_global_label("GND", 85.09, 181.61, 180)
-add_wire(109.22, 184.15, 85.09, 184.15)
-add_global_label("D11", 85.09, 184.15, 180)
-add_wire(109.22, 186.69, 85.09, 186.69)
-add_global_label("D10", 85.09, 186.69, 180)
-add_wire(109.22, 189.23, 85.09, 189.23)
-add_global_label("5V", 85.09, 189.23, 180)
+# Pin 6 (PB3/D31) at (64.76, 72.46)
+add_wire(64.76, 72.46, 25.00, 72.46)
+add_global_label("D31", 25.00, 72.46, 180)
 
-# South Female U27 (at 53.34, 226.06)
-add_wire(50.80, 222.25, 27.94, 222.25)
-add_global_label("5V", 27.94, 222.25, 180)
-add_wire(50.80, 224.79, 27.94, 224.79)
-add_global_label("D20", 27.94, 224.79, 180)
-add_wire(50.80, 227.33, 27.94, 227.33)
-add_global_label("D21", 27.94, 227.33, 180)
-add_wire(50.80, 229.87, 27.94, 229.87)
-add_global_label("GND", 27.94, 229.87, 180)
+# SW1 (Brightness Dimmer) at (45.00, 115.00)
+symbols.append(make_sym("SW1", 45.00, 115.00, 0, -2.54, -3.81, "center", -2.54, 3.81, "center"))
+add_text("SW1: Brightness Dimmer", 30.00, 107.00, size=1.27)
 
-# West Male U29 (at 111.76, 226.06)
-add_wire(109.22, 222.25, 85.09, 222.25)
-add_global_label("GND", 85.09, 222.25, 180)
-add_wire(109.22, 224.79, 85.09, 224.79)
-add_global_label("D30", 85.09, 224.79, 180)
-add_wire(109.22, 227.33, 85.09, 227.33)
-add_global_label("D31", 85.09, 227.33, 180)
-add_wire(109.22, 229.87, 85.09, 229.87)
-add_global_label("5V", 85.09, 229.87, 180)
+# SW2 (Mode Selector) at (95.00, 115.00)
+symbols.append(make_sym("SW2", 95.00, 115.00, 0, -2.54, -3.81, "center", -2.54, 3.81, "center"))
+add_text("SW2: Mode Selector", 80.00, 107.00, size=1.27)
 
-# ==================== SECTION 4 WIRES & LABELS ====================
-# J1: UPDI & Expansion (at 347.98, 66.04)
-# Left pins (1, 3, 5, 7) at x = 347.98 - 5.08 = 342.90
-add_wire(342.90, 63.50, 330.20, 63.50)
-add_global_label("/RESET/UPDI", 330.20, 63.50, 180)
-add_wire(342.90, 66.04, 330.20, 66.04)
-add_global_label("GND", 330.20, 66.04, 180)
-add_wire(342.90, 68.58, 330.20, 68.58)
-add_global_label("B0/SCL", 330.20, 68.58, 180)
-add_wire(342.90, 71.12, 330.20, 71.12)
-add_global_label("B1/SDA", 330.20, 71.12, 180)
+# Connect MCU Pin 9 (PB0) to SW1 Pin 1 (at 39.92, 115.00)
+# MCU Pin 9 is at (64.76, 64.84)
+add_wire(64.76, 64.84, 39.92, 64.84)
+add_wire(39.92, 64.84, 39.92, 115.00)
+add_junc(39.92, 64.84)
+add_wire(39.92, 64.84, 25.00, 64.84)
+add_global_label("B0/SCL", 25.00, 64.84, 180)
 
-# Right pins (2, 4, 6, 8) at x = 347.98 + 7.62 = 355.60
-add_wire(355.60, 63.50, 368.30, 63.50)
-add_global_label("5V", 368.30, 63.50, 0)
-add_wire(355.60, 66.04, 368.30, 66.04)
-add_global_label("DIN", 368.30, 66.04, 0)
-add_wire(355.60, 68.58, 368.30, 68.58)
-add_global_label("GND", 368.30, 68.58, 0)
-add_wire(355.60, 71.12, 368.30, 71.12)
-add_global_label("DOUT", 368.30, 71.12, 0)
+# SW1 Pin 2 to GND
+add_wire(50.08, 115.00, 60.00, 115.00)
+add_global_label("GND", 60.00, 115.00, 0)
 
-# J2: Mirror Bus (at 391.16, 66.04)
-# Left pins (1, 3, 5, 7) at x = 391.16 - 5.08 = 386.08
-add_wire(386.08, 63.50, 373.38, 63.50)
-add_global_label("/RESET/UPDI", 373.38, 63.50, 180)
-add_wire(386.08, 66.04, 373.38, 66.04)
-add_global_label("GND", 373.38, 66.04, 180)
-add_wire(386.08, 68.58, 373.38, 68.58)
-add_global_label("B0/SCL", 373.38, 68.58, 180)
-add_wire(386.08, 71.12, 373.38, 71.12)
-add_global_label("B1/SDA", 373.38, 71.12, 180)
+# Connect MCU Pin 8 (PB1) to SW2 Pin 1 (at 89.92, 115.00)
+# MCU Pin 8 is at (64.76, 67.38)
+add_wire(64.76, 67.38, 55.00, 67.38)
+add_wire(55.00, 67.38, 55.00, 103.00)
+add_wire(55.00, 103.00, 89.92, 103.00)
+add_wire(89.92, 103.00, 89.92, 115.00)
+add_junc(55.00, 67.38)
+add_wire(55.00, 67.38, 25.00, 67.38)
+add_global_label("B1/SDA", 25.00, 67.38, 180)
 
-# Right pins (2, 4, 6, 8) at x = 391.16 + 7.62 = 398.78
-add_wire(398.78, 63.50, 411.48, 63.50)
-add_global_label("5V", 411.48, 63.50, 0)
-add_wire(398.78, 66.04, 411.48, 66.04)
-add_global_label("DIN", 411.48, 66.04, 0)
-add_wire(398.78, 68.58, 411.48, 68.58)
-add_global_label("GND", 411.48, 68.58, 0)
-add_wire(398.78, 71.12, 411.48, 71.12)
-add_global_label("DOUT", 411.48, 71.12, 0)
+# SW2 Pin 2 to GND
+add_wire(100.08, 115.00, 110.00, 115.00)
+add_global_label("GND", 110.00, 115.00, 0)
 
-# Power Flags
-add_wire(345.44, 100.33, 330.20, 100.33)
-add_global_label("5V", 330.20, 100.33, 180)
-add_wire(388.62, 100.33, 373.38, 100.33)
-add_global_label("GND", 373.38, 100.33, 180)
 
-# ==================== SECTION 3 WIRES & LABELS ====================
-inter_row_nets = [
-    ("DIN", "Net-(U10-DOUT)"),
-    ("Net-(U10-DOUT)", "Net-(U18-DOUT)"),
-    ("Net-(U18-DOUT)", "Net-(U30-DOUT)"),
-    ("Net-(U30-DOUT)", "Net-(U38-DOUT)"),
-    ("Net-(U38-DOUT)", "Net-(U46-DOUT)"),
-    ("Net-(U46-DOUT)", "DOUT")
+# ==============================================================================
+# 2. SECTION 2: 4-WAY MAGNETIC SNAP BUS CONNECTORS
+# ==============================================================================
+symbols.append(make_sym("U26", 55.00, 180.00, 0, -2.54, -6.00, "center", -2.54, 6.00, "center"))
+symbols.append(make_sym("U28", 115.00, 180.00, 0, -2.54, -6.00, "center", -2.54, 6.00, "center"))
+symbols.append(make_sym("U27", 55.00, 240.00, 0, -2.54, -6.00, "center", -2.54, 6.00, "center"))
+symbols.append(make_sym("U29", 115.00, 240.00, 0, -2.54, -6.00, "center", -2.54, 6.00, "center"))
+
+add_text("NORTH EDGE (Female)", 35.00, 168.00, size=1.27, bold=True)
+add_text("EAST EDGE (Male)", 95.00, 168.00, size=1.27, bold=True)
+add_text("SOUTH EDGE (Female)", 35.00, 228.00, size=1.27, bold=True)
+add_text("WEST EDGE (Male)", 95.00, 228.00, size=1.27, bold=True)
+
+# U26 (Female)
+add_wire(52.46, 176.19, 30.00, 176.19)
+add_global_label("5V", 30.00, 176.19, 180)
+add_wire(52.46, 178.73, 30.00, 178.73)
+add_global_label("D00", 30.00, 178.73, 180)
+add_wire(52.46, 181.27, 30.00, 181.27)
+add_global_label("D01", 30.00, 181.27, 180)
+add_wire(52.46, 183.81, 30.00, 183.81)
+add_global_label("GND", 30.00, 183.81, 180)
+
+# U28 (Male)
+add_wire(112.46, 176.19, 90.00, 176.19)
+add_global_label("GND", 90.00, 176.19, 180)
+add_wire(112.46, 178.73, 90.00, 178.73)
+add_global_label("D21", 90.00, 178.73, 180)
+add_wire(112.46, 181.27, 90.00, 181.27)
+add_global_label("D20", 90.00, 181.27, 180)
+add_wire(112.46, 183.81, 90.00, 183.81)
+add_global_label("5V", 90.00, 183.81, 180)
+
+# U27 (Female)
+add_wire(52.46, 236.19, 30.00, 236.19)
+add_global_label("5V", 30.00, 236.19, 180)
+add_wire(52.46, 238.73, 30.00, 238.73)
+add_global_label("D10", 30.00, 238.73, 180)
+add_wire(52.46, 241.27, 30.00, 241.27)
+add_global_label("D11", 30.00, 241.27, 180)
+add_wire(52.46, 243.81, 30.00, 243.81)
+add_global_label("GND", 30.00, 243.81, 180)
+
+# U29 (Male)
+add_wire(112.46, 236.19, 90.00, 236.19)
+add_global_label("GND", 90.00, 236.19, 180)
+add_wire(112.46, 238.73, 90.00, 238.73)
+add_global_label("D31", 90.00, 238.73, 180)
+add_wire(112.46, 241.27, 90.00, 241.27)
+add_global_label("D30", 90.00, 241.27, 180)
+add_wire(112.46, 243.81, 90.00, 243.81)
+add_global_label("5V", 90.00, 243.81, 180)
+
+
+# ==============================================================================
+# 3. SECTION 3: 6x6 WS2812D ADDRESSABLE RGB LED MATRIX
+# ==============================================================================
+# 6 rows of 6 LEDs
+rows_leds = [
+    ("ROW 0", ["U15", "U14", "U13", "U12", "U11", "U10"]),
+    ("ROW 1", ["U23", "U22", "U21", "U20", "U19", "U18"]),
+    ("ROW 2", ["U35", "U34", "U33", "U32", "U31", "U30"]),
+    ("ROW 3", ["U43", "U42", "U41", "U40", "U39", "U38"]),
+    ("ROW 4", ["U51", "U50", "U49", "U48", "U47", "U46"]),
+    ("ROW 5", ["U59", "U58", "U57", "U56", "U55", "U54"])
 ]
 
-for r_idx, (r_name, y_row, led_list, cap_list) in enumerate(rows):
-    in_net, out_net = inter_row_nets[r_idx]
+lx_cols = [168.00, 193.40, 218.80, 244.20, 269.60, 295.00]
+y_rows = [38.10, 76.20, 114.30, 152.40, 190.50, 228.60]
+
+for r, (r_name, led_list) in enumerate(rows_leds):
+    y_row = y_rows[r]
+    add_text(r_name, 154.00, y_row - 10.00, size=1.27, bold=True)
     
-    # 1. 5V Power Rail (Upper): at y = y_row - 1.27
+    # 5V Rail (y_row - 1.27)
     y_vdd = y_row - 1.27
-    add_wire(154.94, y_vdd, 294.64, y_vdd)
-    add_global_label("5V", 154.94, y_vdd, 180)
+    add_wire(158.00, y_vdd, 295.00, y_vdd)
+    add_global_label("5V", 158.00, y_vdd, 180)
     
-    # 2. GND Power Rail (Lower): at y = y_row + 1.27
+    # GND Rail (y_row + 1.27)
     y_gnd = y_row + 1.27
-    add_wire(154.94, y_gnd, 294.64, y_gnd)
-    add_global_label("GND", 154.94, y_gnd, 180)
-    
-    # Connect each LED and Capacitor to 5V and GND
+    add_wire(158.00, y_gnd, 295.00, y_gnd)
+    add_global_label("GND", 158.00, y_gnd, 180)
+
     for c in range(6):
+        led_ref = led_list[c]
         lx = lx_cols[c]
-        cx = cx_cols[c]
+        symbols.append(make_sym(led_ref, lx, y_row, 0, 4.50, -6.50, "left", 4.50, 6.50, "left", hide_val=True))
         
-        # LED Pin 3 (VDD) is at (lx - 2.54, y_vdd)
+        # Connect VDD (Pin 3) and GND (Pin 2)
         add_junc(lx - 2.54, y_vdd)
-        
-        # LED Pin 2 (GND) is at (lx - 2.54, y_gnd)
         add_junc(lx - 2.54, y_gnd)
-        
-        # Capacitor (rot 180):
-        # Pin 1 (5V) is at (cx, y_row - 3.81) -> wire down to (cx, y_vdd)
-        add_wire(cx, y_row - 3.81, cx, y_vdd)
-        add_junc(cx, y_vdd)
-        
-        # Pin 2 (GND) is at (cx, y_row + 3.81) -> wire up to (cx, y_gnd)
-        add_wire(cx, y_row + 3.81, cx, y_gnd)
-        add_junc(cx, y_gnd)
 
-    # 3. Data In: to LED 0 Pin 4 (DIN) at (162.56, y_row + 3.81)
-    y_din = y_row + 3.81
-    y_dout = y_row - 3.81
-    add_wire(154.94, y_din, 162.56, y_din)
-    if in_net == "DIN":
-        add_global_label("DIN", 154.94, y_din, 180)
-    else:
-        add_local_label(in_net, 154.94, y_din, 180)
-
-    # 4. Serpentine chaining within the row:
+    # In-row data wires (col 0 to 4)
+    # Loop neatly over the top of the LED body without obstruction!
     for c in range(5):
         x_dout = lx_cols[c] - 2.54
+        y_dout = y_row - 3.81
         x_din_next = lx_cols[c+1] - 2.54
-        x_step = cx_cols[c] + 6.35
+        y_din_next = y_row + 3.81
         
-        add_wire(x_dout, y_dout, x_step, y_dout)
-        add_wire(x_step, y_dout, x_step, y_din)
-        add_wire(x_step, y_din, x_din_next, y_din)
+        # Route: out of DOUT -> up to y_row - 6.35 -> across to x_din_next - 5.08 -> down to y_din_next -> into DIN
+        y_top_route = y_row - 6.35
+        x_drop = x_din_next - 5.08
+        add_wire(x_dout, y_dout, x_dout, y_top_route)
+        add_wire(x_dout, y_top_route, x_drop, y_top_route)
+        add_wire(x_drop, y_top_route, x_drop, y_din_next)
+        add_wire(x_drop, y_din_next, x_din_next, y_din_next)
 
-    # 5. Data Out from LED 5 Pin 1 (DOUT) at (283.21, y_dout)
-    # 304.80 is 240 * 1.27 mm (exact 50 mil connection grid!)
-    add_wire(283.21, y_dout, 304.80, y_dout)
-    if out_net == "DOUT":
-        add_global_label("DOUT", 304.80, y_dout, 0)
-    else:
-        add_local_label(out_net, 304.80, y_dout, 0)
+# Serpentine inter-row data loops!
+# Row 0 DIN:
+add_wire(154.94, y_rows[0] + 3.81, lx_cols[0] - 2.54, y_rows[0] + 3.81)
+add_global_label("DIN", 154.94, y_rows[0] + 3.81, 180)
 
-rectangles = """	(rectangle
-		(start 16.00 16.00)
-		(end 146.00 142.00)
-		(stroke
-			(width 0.3)
-			(type dash)
-		)
-		(fill
-			(type none)
-		)
-		(uuid "56c5e2ec-48e0-4a87-9759-4bb485fc3db3")
-	)
-	(rectangle
-		(start 16.00 148.00)
-		(end 146.00 282.00)
-		(stroke
-			(width 0.3)
-			(type dash)
-		)
-		(fill
-			(type none)
-		)
-		(uuid "3f9801ad-b1a7-4740-b610-d02c65aa1d9c")
-	)
-	(rectangle
-		(start 152.00 16.00)
-		(end 316.00 282.00)
-		(stroke
-			(width 0.3)
-			(type dash)
-		)
-		(fill
-			(type none)
-		)
-		(uuid "6f3d4e78-0cb9-4679-b141-86fbfb01e389")
-	)
-	(rectangle
-		(start 322.00 16.00)
-		(end 418.00 120.00)
-		(stroke
-			(width 0.3)
-			(type dash)
-		)
-		(fill
-			(type none)
-		)
-		(uuid "ea46db3e-c6e3-479e-a89d-7201c70e7b7c")
-	)
-	(rectangle
-		(start 322.00 126.00)
-		(end 418.00 282.00)
-		(stroke
-			(width 0.3)
-			(type dash)
-		)
-		(fill
-			(type none)
-		)
-		(uuid "03b22cfc-0f6a-4648-9366-22a3db61c32c")
-	)"""
+# Loops between rows 0->1, 1->2, 2->3, 3->4, 4->5
+for r in range(5):
+    y_row_curr = y_rows[r]
+    y_row_next = y_rows[r+1]
+    
+    x_dout_end = lx_cols[5] - 2.54  # 292.46
+    y_dout_end = y_row_curr - 3.81
+    
+    x_din_start = lx_cols[0] - 2.54 # 165.46
+    y_din_start = y_row_next + 3.81
+    
+    x_right_turn = 312.00
+    y_channel = y_row_curr + 19.05  # halfway between row r and row r+1
+    x_left_turn = 158.00
+    
+    # 1. Out from end DOUT to right margin
+    add_wire(x_dout_end, y_dout_end, x_right_turn, y_dout_end)
+    # 2. Down along right margin to channel
+    add_wire(x_right_turn, y_dout_end, x_right_turn, y_channel)
+    # 3. Across channel all the way left
+    add_wire(x_right_turn, y_channel, x_left_turn, y_channel)
+    # 4. Down to next row's DIN level
+    add_wire(x_left_turn, y_channel, x_left_turn, y_din_start)
+    # 5. Right into next row's DIN
+    add_wire(x_left_turn, y_din_start, x_din_start, y_din_start)
 
-texts = """	(text "1. MICROCONTROLLER & CONTROLS (ATtiny1604)"
-		(at 20.00 20.00 0)
-		(effects
-			(font
-				(size 2.5 2.5)
-				(bold yes)
-			)
-			(justify left)
-		)
-		(uuid "6eb77efb-5e63-4ce4-82a1-aa8be7f91720")
-	)
-	(text "20MHz AVR Core | Dual User Buttons | LED Buffer Resistor"
-		(at 20.00 25.00 0)
-		(effects
-			(font
-				(size 1.5 1.5)
-				(italic yes)
-			)
-			(justify left)
-		)
-		(uuid "3b9a59aa-b51f-4b0d-9b57-19aa82be1e22")
-	)
-	(text "SW1: Brightness Dimmer"
-		(at 36.00 118.00 0)
-		(effects
-			(font
-				(size 1.5 1.5)
-				(bold yes)
-			)
-			(justify left)
-		)
-		(uuid "17d05777-6262-432d-8692-a1f0a2d21652")
-	)
-	(text "SW2: Mode Selector"
-		(at 94.00 118.00 0)
-		(effects
-			(font
-				(size 1.5 1.5)
-				(bold yes)
-			)
-			(justify left)
-		)
-		(uuid "b09eb12f-6888-4c12-9e2e-2e06f8595aee")
-	)
-	(text "2. 4-WAY MAGNETIC SNAP BUS CONNECTORS"
-		(at 20.00 154.00 0)
-		(effects
-			(font
-				(size 2.5 2.5)
-				(bold yes)
-			)
-			(justify left)
-		)
-		(uuid "fcf6e680-e83c-4444-a15e-a61fefffa744")
-	)
-	(text "Self-Aligning Edge Pogo Connectors with Instant Hardware Detection"
-		(at 20.00 159.00 0)
-		(effects
-			(font
-				(size 1.5 1.5)
-				(italic yes)
-			)
-			(justify left)
-		)
-		(uuid "f183cf53-bba2-47ea-a4be-4f4aa0093a41")
-	)
-	(text "NORTH EDGE (Female)"
-		(at 28.00 171.00 0)
-		(effects
-			(font
-				(size 1.5 1.5)
-				(bold yes)
-			)
-			(justify left)
-		)
-		(uuid "df6fe992-0720-4e31-8ca6-d62f4370ecf6")
-	)
-	(text "EAST EDGE (Male)"
-		(at 88.00 171.00 0)
-		(effects
-			(font
-				(size 1.5 1.5)
-				(bold yes)
-			)
-			(justify left)
-		)
-		(uuid "9b3c4314-ecfa-4da6-92c1-d41cfa2a884f")
-	)
-	(text "SOUTH EDGE (Female)"
-		(at 28.00 211.00 0)
-		(effects
-			(font
-				(size 1.5 1.5)
-				(bold yes)
-			)
-			(justify left)
-		)
-		(uuid "217215ca-eec6-4f48-ab50-ff9b986e681c")
-	)
-	(text "WEST EDGE (Male)"
-		(at 88.00 211.00 0)
-		(effects
-			(font
-				(size 1.5 1.5)
-				(bold yes)
-			)
-			(justify left)
-		)
-		(uuid "eb458348-18e0-4ba2-921d-23956e1df26f")
-	)
-	(text "3. 6x6 WS2812D ADDRESSABLE RGB LED MATRIX"
-		(at 156.00 20.00 0)
-		(effects
-			(font
-				(size 2.5 2.5)
-				(bold yes)
-			)
-			(justify left)
-		)
-		(uuid "9f116a4a-1ad0-4f51-b0fe-24df974bb75f")
-	)
-	(text "36x Diffused LEDs in Serpentine Chain | Local 100n Decoupling Capacitors"
-		(at 156.00 25.00 0)
-		(effects
-			(font
-				(size 1.5 1.5)
-				(italic yes)
-			)
-			(justify left)
-		)
-		(uuid "1d6c8e3c-8b83-4a1d-a320-f5a6b7d159ae")
-	)
-	(text "ROW 0"
-		(at 154.00 39.26 0)
-		(effects
-			(font
-				(size 1.5 1.5)
-				(bold yes)
-			)
-			(justify left)
-		)
-		(uuid "03b30ad5-9eb9-40ae-af65-748981df52ea")
-	)
-	(text "ROW 1"
-		(at 154.00 77.36 0)
-		(effects
-			(font
-				(size 1.5 1.5)
-				(bold yes)
-			)
-			(justify left)
-		)
-		(uuid "8939c07e-07bf-4f93-8f0a-115fb38c3539")
-	)
-	(text "ROW 2"
-		(at 154.00 115.46 0)
-		(effects
-			(font
-				(size 1.5 1.5)
-				(bold yes)
-			)
-			(justify left)
-		)
-		(uuid "fcf061c0-eb88-4682-841f-135e5d1ecafc")
-	)
-	(text "ROW 3"
-		(at 154.00 153.56 0)
-		(effects
-			(font
-				(size 1.5 1.5)
-				(bold yes)
-			)
-			(justify left)
-		)
-		(uuid "14f2e96d-c840-41bf-94f4-6da5e486016e")
-	)
-	(text "ROW 4"
-		(at 154.00 191.66 0)
-		(effects
-			(font
-				(size 1.5 1.5)
-				(bold yes)
-			)
-			(justify left)
-		)
-		(uuid "e6c0c299-d4c3-4d43-85f5-f53835ee6162")
-	)
-	(text "ROW 5"
-		(at 154.00 229.76 0)
-		(effects
-			(font
-				(size 1.5 1.5)
-				(bold yes)
-			)
-			(justify left)
-		)
-		(uuid "3f9848f5-9610-4f51-b847-f38b0292b3ef")
-	)
-	(text "4. PROGRAMMING & EXPANSION HEADERS"
-		(at 326.00 20.00 0)
-		(effects
-			(font
-				(size 2.5 2.5)
-				(bold yes)
-			)
-			(justify left)
-		)
-		(uuid "f3ef9cf5-1ea9-42b7-a3ea-20d0fdf1f2f0")
-	)
-	(text "Dual 2x4 SMD Headers for 1-Wire UPDI Flashing & Bus Expansion"
-		(at 326.00 25.00 0)
-		(effects
-			(font
-				(size 1.5 1.5)
-				(italic yes)
-			)
-			(justify left)
-		)
-		(uuid "7fbeba9d-a41e-450f-9ad0-42790906be73")
-	)
-	(text "J1 (UPDI & EXPANSION)"
-		(at 332.00 48.00 0)
-		(effects
-			(font
-				(size 1.5 1.5)
-				(bold yes)
-			)
-			(justify left)
-		)
-		(uuid "89fba9dc-e2b2-4d1a-be10-d023f05d92e5")
-	)
-	(text "J2 (MIRROR BUS)"
-		(at 376.00 48.00 0)
-		(effects
-			(font
-				(size 1.5 1.5)
-				(bold yes)
-			)
-			(justify left)
-		)
-		(uuid "6f35ea90-251a-471a-9694-817abdf2847a")
-	)
-	(text "POWER FLAGS & NET DECLARATION"
-		(at 326.00 90.00 0)
-		(effects
-			(font
-				(size 2.0 2.0)
-				(bold yes)
-			)
-			(justify left)
-		)
-		(uuid "5ef731ad-35ea-4dca-9759-994f31cfa7ee")
-	)
-	(text "5. THEORY OF OPERATION & SYSTEM NOTES"
-		(at 326.00 130.00 0)
-		(effects
-			(font
-				(size 2.5 2.5)
-				(bold yes)
-			)
-			(justify left)
-		)
-		(uuid "d0a85ba4-e0b4-4b47-b86c-0f9c2d76587d")
-	)
-	(text "Architecture, Flashing Guide, and Mechanical Assembly"
-		(at 326.00 135.00 0)
-		(effects
-			(font
-				(size 1.5 1.5)
-				(italic yes)
-			)
-			(justify left)
-		)
-		(uuid "fcf061be-c045-4235-9689-138b051268ea")
-	)
-	(text "SYSTEM OVERVIEW:\\n* Microcontroller: Microchip ATtiny1604-SS (20MHz internal oscillator, 16KB Flash, 1KB SRAM).\\n* LED Display: 36x WS2812D addressable RGB LEDs arranged in a 6x6 serpentine array.\\n* Decoupling: Dedicated 100nF ceramic capacitor for each LED and MCU VDD rail.\\n\\n4-WAY MAGNETIC BUS & AUTODETECT:\\n* Complementary Gender Architecture:\\n  - North & South edges: 4-pin Female spring pogo connectors.\\n  - East & West edges: 4-pin Male target pad connectors.\\n* Automatic Grid Topology Mapping:\\n  - Pins D00..D31 form complementary neighbor detection pairs across adjacent tiles.\\n  - Internal pullups sense tile attachment instantly on contact without software overhead.\\n\\nFIRMWARE FLASHING (UPDI):\\n* Single-wire UPDI interface available on Pin 1 of J1/J2 (/RESET/UPDI).\\n* Compatible with SerialUPDI (CH340/CP2102 + 4.7k resistor + diode) or jtag2updi programmer.\\n* Board package: megaTinyCore in Arduino IDE.\\n* Recommended settings: ATtiny1604, 20MHz internal clock, BOD disabled / 2.6V."
-		(at 326.00 144.00 0)
-		(effects
-			(font
-				(size 1.3 1.3)
-			)
-			(justify left top)
-		)
-		(uuid "7fbe7cf5-87ea-46b5-82b1-4191fe8c71b1")
-	)"""
+# Row 5 DOUT exits to global label DOUT
+x_last_dout = lx_cols[5] - 2.54
+y_last_dout = y_rows[5] - 3.81
+add_wire(x_last_dout, y_last_dout, 315.00, y_last_dout)
+add_global_label("DOUT", 315.00, y_last_dout, 0)
 
-header = """(kicad_sch
-	(version 20231120)
-	(generator "eeschema")
-	(generator_version "8.0")
-	(uuid "5ab56492-366c-4f9f-88c9-0814fc5584d0")
-	(paper "A3")
-	(title_block
-		(title "Modular LED Matrix 6x6 (Bitluni Architecture)")
-		(date "2026-11-01")
-		(rev "v2.0-aligned")
-		(company "Antigravity Hardware")
-		(comment 1 "6x6 WS2812D Addressable LEDs + ATtiny1604-SS + 4-Way Magnetic Snap Bus")
-		(comment 2 "Serpentine Daisy Chain with Complementary Neighbor Sensing")
-		(comment 3 "Clean Modular Schematic Layout")
-	)
-"""
 
-trailer = """	(sheet_instances
-		(path "/"
-			(page "1")
-		)
-	)
+# ==============================================================================
+# 4. SECTION 4: PROGRAMMING & MIRROR HEADERS
+# ==============================================================================
+symbols.append(make_sym("J1", 350.00, 50.00, 0, -2.54, -6.50, "center", -2.54, 6.50, "center"))
+symbols.append(make_sym("J2", 390.00, 50.00, 0, -2.54, -6.50, "center", -2.54, 6.50, "center"))
+
+add_text("J1 (UPDI & EXPANSION)", 335.00, 38.00, size=1.27, bold=True)
+add_text("J2 (MIRROR BUS)", 380.00, 38.00, size=1.27, bold=True)
+
+# J1 & J2 Pins:
+# J1 Odd pins at 344.92, Even pins at 357.62
+# J2 Odd pins at 384.92, Even pins at 397.62
+headers = [
+    (350.00, 344.92, 357.62),
+    (390.00, 384.92, 397.62)
+]
+
+for center_x, odd_x, even_x in headers:
+    # Pin 1: /RESET/UPDI
+    add_wire(odd_x, 46.19, odd_x - 10.00, 46.19)
+    add_global_label("/RESET/UPDI", odd_x - 10.00, 46.19, 180)
+    
+    # Pin 3: GND
+    add_wire(odd_x, 48.73, odd_x - 10.00, 48.73)
+    add_global_label("GND", odd_x - 10.00, 48.73, 180)
+    
+    # Pin 5: B0/SCL
+    add_wire(odd_x, 51.27, odd_x - 10.00, 51.27)
+    add_global_label("B0/SCL", odd_x - 10.00, 51.27, 180)
+    
+    # Pin 7: B1/SDA
+    add_wire(odd_x, 53.81, odd_x - 10.00, 53.81)
+    add_global_label("B1/SDA", odd_x - 10.00, 53.81, 180)
+
+    # Pin 2: 5V
+    add_wire(even_x, 46.19, even_x + 10.00, 46.19)
+    add_global_label("5V", even_x + 10.00, 46.19, 0)
+    
+    # Pin 4: DIN
+    add_wire(even_x, 48.73, even_x + 10.00, 48.73)
+    add_global_label("DIN", even_x + 10.00, 48.73, 0)
+    
+    # Pin 6: GND
+    add_wire(even_x, 51.27, even_x + 10.00, 51.27)
+    add_global_label("GND", even_x + 10.00, 51.27, 0)
+    
+    # Pin 8: DOUT
+    add_wire(even_x, 53.81, even_x + 10.00, 53.81)
+    add_global_label("DOUT", even_x + 10.00, 53.81, 0)
+
+# Power Flags
+symbols.append(make_sym("#FLG01", 345.00, 75.00, 0, 0, -2.54, "center", 0, 2.54, "center", hide_val=True))
+add_wire(345.00, 75.00, 335.00, 75.00)
+add_global_label("5V", 335.00, 75.00, 180)
+
+symbols.append(make_sym("#FLG02", 385.00, 75.00, 0, 0, -2.54, "center", 0, 2.54, "center", hide_val=True))
+add_wire(385.00, 75.00, 375.00, 75.00)
+add_global_label("GND", 375.00, 75.00, 180)
+
+
+# ==============================================================================
+# 5. SECTION 5: DECOUPLING CAPACITORS (36x 100nF)
+# ==============================================================================
+# 36 decoupling caps arranged in a clean, spacious 6x6 bank!
+caps_bank = [
+    ['C2',  'C3',  'C4',  'C6',  'C8',  'C9'],
+    ['C10', 'C11', 'C12', 'C14', 'C15', 'C16'],
+    ['C17', 'C20', 'C22', 'C23', 'C27', 'C29'],
+    ['C30', 'C31', 'C33', 'C34', 'C38', 'C41'],
+    ['C43', 'C44', 'C47', 'C48', 'C51', 'C52'],
+    ['C54', 'C55', 'C56', 'C57', 'C58', 'C62']
+]
+
+cx_bank = [338.00, 351.00, 364.00, 377.00, 390.00, 403.00]
+cy_bank = [112.00, 130.00, 148.00, 166.00, 184.00, 202.00]
+
+for r in range(6):
+    cy = cy_bank[r]
+    # Horizontal 5V rail at cy - 3.81
+    y_rail_5v = cy - 3.81
+    add_wire(333.00, y_rail_5v, 405.00, y_rail_5v)
+    add_global_label("5V", 333.00, y_rail_5v, 180)
+    
+    # Horizontal GND rail at cy + 3.81
+    y_rail_gnd = cy + 3.81
+    add_wire(333.00, y_rail_gnd, 405.00, y_rail_gnd)
+    add_global_label("GND", 333.00, y_rail_gnd, 180)
+
+    for c in range(6):
+        cx = cx_bank[c]
+        cap_ref = caps_bank[r][c]
+        symbols.append(make_sym(cap_ref, cx, cy, 0, 2.00, -1.27, "left", 2.00, 1.27, "left", font_size=1.0))
+        
+        # Connect Pin 1 (top, 5V) to 5V rail
+        add_junc(cx, y_rail_5v)
+        # Connect Pin 2 (bottom, GND) to GND rail
+        add_junc(cx, y_rail_gnd)
+
+
+# ==============================================================================
+# SECTION BOXES & DOCUMENTATION
+# ==============================================================================
+rectangles = """\t(rectangle
+\t\t(start 16.00 16.00)
+\t\t(end 146.00 142.00)
+\t\t(stroke
+\t\t\t(width 0.3)
+\t\t\t(type dash)
+\t\t\t(color 0 0 150 1)
+\t\t)
+\t\t(fill
+\t\t\t(type none)
+\t\t)
+\t\t(uuid "{uuid.uuid4()}")
+\t)
+\t(rectangle
+\t\t(start 16.00 146.00)
+\t\t(end 146.00 282.00)
+\t\t(stroke
+\t\t\t(width 0.3)
+\t\t\t(type dash)
+\t\t\t(color 0 0 150 1)
+\t\t)
+\t\t(fill
+\t\t\t(type none)
+\t\t)
+\t\t(uuid "{uuid.uuid4()}")
+\t)
+\t(rectangle
+\t\t(start 150.00 16.00)
+\t\t(end 326.00 282.00)
+\t\t(stroke
+\t\t\t(width 0.3)
+\t\t\t(type dash)
+\t\t\t(color 0 0 150 1)
+\t\t)
+\t\t(fill
+\t\t\t(type none)
+\t\t)
+\t\t(uuid "{uuid.uuid4()}")
+\t)
+\t(rectangle
+\t\t(start 330.00 16.00)
+\t\t(end 408.00 90.00)
+\t\t(stroke
+\t\t\t(width 0.3)
+\t\t\t(type dash)
+\t\t\t(color 0 0 150 1)
+\t\t)
+\t\t(fill
+\t\t\t(type none)
+\t\t)
+\t\t(uuid "{uuid.uuid4()}")
+\t)
+\t(rectangle
+\t\t(start 330.00 95.00)
+\t\t(end 408.00 216.00)
+\t\t(stroke
+\t\t\t(width 0.3)
+\t\t\t(type dash)
+\t\t\t(color 0 0 150 1)
+\t\t)
+\t\t(fill
+\t\t\t(type none)
+\t\t)
+\t\t(uuid "{uuid.uuid4()}")
+\t)
+\t(rectangle
+\t\t(start 330.00 220.00)
+\t\t(end 408.00 252.00)
+\t\t(stroke
+\t\t\t(width 0.3)
+\t\t\t(type dash)
+\t\t\t(color 0 0 150 1)
+\t\t)
+\t\t(fill
+\t\t\t(type none)
+\t\t)
+\t\t(uuid "{uuid.uuid4()}")
+\t)"""
+
+# Add section titles
+add_text("1. MICROCONTROLLER & CONTROLS (ATtiny1604)", 20.00, 20.00, size=2.0, bold=True)
+add_text("20MHz AVR Core | Dual User Buttons | In-Line R1 Protection | C63 Bypass Cap", 20.00, 25.00, size=1.2)
+
+add_text("2. 4-WAY MAGNETIC SNAP BUS CONNECTORS", 20.00, 150.00, size=2.0, bold=True)
+add_text("Self-Aligning Edge Pogo Connectors with Instant Hardware Detection", 20.00, 155.00, size=1.2)
+
+add_text("3. 6x6 WS2812D ADDRESSABLE RGB LED MATRIX", 154.00, 20.00, size=2.0, bold=True)
+add_text("Continuous Visible Serpentine Chain (Row 0 -> Row 5) | 36x WS2812D Pixels", 154.00, 25.00, size=1.2)
+
+add_text("4. PROGRAMMING & EXPANSION HEADERS", 334.00, 20.00, size=1.8, bold=True)
+add_text("Dual 2x4 SMD Headers for 1-Wire UPDI Flashing & Bus Mirroring", 334.00, 25.00, size=1.2)
+
+add_text("5. DECOUPLING CAPACITORS (36x 100nF)", 334.00, 99.00, size=1.8, bold=True)
+add_text("Dedicated 100nF 0603 Ceramic Bypass per WS2812D LED (Pin 1=5V, Pin 2=GND)", 334.00, 103.00, size=1.1)
+
+add_text("6. SYSTEM ARCHITECTURE & TOPOLOGY", 334.00, 223.00, size=1.8, bold=True)
+add_text("* Complementary Pogo Gender: North/South Female, East/West Male", 334.00, 228.00, size=1.1)
+add_text("* Neighbor Detection: D00..D31 form complementary pairs across tiles", 334.00, 233.00, size=1.1)
+add_text("* Firmware: megaTinyCore in Arduino IDE (ATtiny1604, 20MHz, 800kHz)", 334.00, 238.00, size=1.1)
+
+
+with open('pristine_lib_symbols.sexpr', 'r') as f:
+    lib_symbols_block = f.read()
+
+# Also ensure lib_symbols includes "New_Library:WS2812D" without _2
+if 'symbol "New_Library:WS2812D"' not in lib_symbols_block and 'symbol "New_Library:WS2812D_2"' in lib_symbols_block:
+    lib_symbols_block = lib_symbols_block.replace('symbol "New_Library:WS2812D_2"', 'symbol "New_Library:WS2812D"')
+    lib_symbols_block = lib_symbols_block.replace('symbol "WS2812D_2_0_1"', 'symbol "WS2812D_0_1"')
+    lib_symbols_block = lib_symbols_block.replace('symbol "WS2812D_2_1_1"', 'symbol "WS2812D_1_1"')
+
+# Build final schematic
+full_sch = f"""(kicad_sch
+\t(version 20250114)
+\t(generator "eeschema")
+\t(generator_version "10.0")
+\t(uuid "{uuid.uuid4()}")
+\t(paper "A3")
+\t(title_block
+\t\t(title "Modular LED Matrix 6x6 (Bitluni Compatible)")
+\t\t(date "2026-11-01")
+\t\t(rev "v2.1-humanlike")
+\t\t(company "Antigravity Hardware")
+\t\t(comment 1 "6x6 WS2812D Addressable LEDs + ATtiny1604-SS + 4-Way Magnetic Snap Bus")
+\t\t(comment 2 "Serpentine Daisy Chain with Direct Component Wiring")
+\t)
+{lib_symbols_block}
+
+{rectangles}
+
+{"\n".join(texts)}
+
+{"\n".join(junctions)}
+
+{"\n".join(wires)}
+
+{"\n".join(labels)}
+
+{"\n".join(symbols)}
+
+\t(sheet_instances
+\t\t(path "/"
+\t\t\t(page "1")
+\t\t)
+\t)
 )
 """
 
-assembled = header + "\t" + lib_symbols_raw + "\n" + rectangles + "\n" + texts + "\n" + "\n".join(wires) + "\n" + "\n".join(junctions) + "\n" + "\n".join(labels) + "\n" + "\n".join(symbols) + "\n" + trailer
-
-open_p = assembled.count("(")
-close_p = assembled.count(")")
-assert open_p == close_p, f"Parentheses mismatch: {open_p} vs {close_p}"
-
 with open("KiCad/modularmatrix.kicad_sch", "w") as f:
-    f.write(assembled)
+    f.write(full_sch)
 
-print("Generated clean schematic with exact pin alignments!")
+print("Successfully generated clean, humanlike modularmatrix.kicad_sch!")

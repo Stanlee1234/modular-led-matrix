@@ -1,0 +1,57 @@
+ERC report (2026-11-01T20:59:25, Encoding UTF8)
+Report includes: Errors, Warnings
+
+***** Sheet /
+[pin_not_connected]: Pin not connected
+    ; error
+    @(64.76 mm, 64.84 mm): Symbol U69 Pin 9 [PB0, Bidirectional, Line]
+[pin_not_connected]: Pin not connected
+    ; error
+    @(64.76 mm, 67.38 mm): Symbol U69 Pin 8 [PB1, Bidirectional, Line]
+[pin_not_connected]: Pin not connected
+    ; error
+    @(64.76 mm, 69.92 mm): Symbol U69 Pin 7 [PB2, Bidirectional, Line]
+[pin_not_connected]: Pin not connected
+    ; error
+    @(64.76 mm, 72.46 mm): Symbol U69 Pin 6 [PB3, Bidirectional, Line]
+[pin_not_connected]: Pin not connected
+    ; error
+    @(80.00 mm, 57.22 mm): Symbol U69 Pin 1 [VCC, Power input, Line]
+[pin_not_connected]: Pin not connected
+    ; error
+    @(80.00 mm, 92.78 mm): Symbol U69 Pin 14 [GND, Power input, Line]
+[pin_not_connected]: Pin not connected
+    ; error
+    @(95.24 mm, 64.84 mm): Symbol U69 Pin 10 [~{RESET}/PA0, Bidirectional, Line]
+[pin_not_connected]: Pin not connected
+    ; error
+    @(95.24 mm, 67.38 mm): Symbol U69 Pin 11 [PA1, Bidirectional, Line]
+[pin_not_connected]: Pin not connected
+    ; error
+    @(95.24 mm, 69.92 mm): Symbol U69 Pin 12 [PA2, Bidirectional, Line]
+[pin_not_connected]: Pin not connected
+    ; error
+    @(95.24 mm, 72.46 mm): Symbol U69 Pin 13 [PA3, Bidirectional, Line]
+[pin_not_connected]: Pin not connected
+    ; error
+    @(95.24 mm, 75.00 mm): Symbol U69 Pin 2 [PA4, Bidirectional, Line]
+[pin_not_connected]: Pin not connected
+    ; error
+    @(95.24 mm, 77.54 mm): Symbol U69 Pin 3 [PA5, Bidirectional, Line]
+[pin_not_connected]: Pin not connected
+    ; error
+    @(95.24 mm, 80.08 mm): Symbol U69 Pin 4 [PA6, Bidirectional, Line]
+[pin_not_connected]: Pin not connected
+    ; error
+    @(95.24 mm, 82.62 mm): Symbol U69 Pin 5 [PA7, Bidirectional, Line]
+[endpoint_off_grid]: Symbol pin or wire end off connection grid
+    ; warning
+    @(80.00 mm, 57.22 mm): Symbol U69 Pin 1 [VCC, Power input, Line]
+
+ ** ERC messages: 15  Errors 14  Warnings 1
+
+ ** Ignored checks:
+    - Global label only appears once in the schematic
+    - Four connection points are joined together
+    - SPICE model issue
+    - Assigned footprint doesn't match footprint filters
