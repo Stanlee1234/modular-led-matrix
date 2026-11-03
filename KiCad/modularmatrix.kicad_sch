@@ -1783,18 +1783,6 @@
 		)
 		(uuid "0972ee27-94a1-473b-bf4b-66ad9089ca28")
 	)
-	(text "ROW 4"
-		(exclude_from_sim no)
-		(at 104.11 179.23 0)
-		(effects
-			(font
-				(size 1.27 1.27)
-				(bold yes)
-			)
-			(justify left top)
-		)
-		(uuid "1495bca7-fb7c-4fcd-8f56-86987c527d59")
-	)
 	(text "Magnetic Snappers"
 		(exclude_from_sim no)
 		(at 16.364 18.034 0)
@@ -1806,18 +1794,6 @@
 			(justify left top)
 		)
 		(uuid "30dc096d-a3b1-4483-b51d-4634b14d8cee")
-	)
-	(text "ROW 2"
-		(exclude_from_sim no)
-		(at 104.11 103.03 0)
-		(effects
-			(font
-				(size 1.27 1.27)
-				(bold yes)
-			)
-			(justify left top)
-		)
-		(uuid "38ac656f-e147-433c-a949-9b853db6755a")
 	)
 	(text "Microcontroller"
 		(exclude_from_sim no)
@@ -1867,18 +1843,6 @@
 		)
 		(uuid "5c4490b9-5f22-43e6-ab7c-7914f903e021")
 	)
-	(text "ROW 5"
-		(exclude_from_sim no)
-		(at 104.11 217.33 0)
-		(effects
-			(font
-				(size 1.27 1.27)
-				(bold yes)
-			)
-			(justify left top)
-		)
-		(uuid "5d1e49a5-a3d0-40d6-a224-01fd13208ef9")
-	)
 	(text "Programming"
 		(exclude_from_sim no)
 		(at 43.434 364.49 0)
@@ -1890,42 +1854,6 @@
 			(justify left top)
 		)
 		(uuid "6413d943-8b06-4847-b3f8-ddc00cc49ce1")
-	)
-	(text "ROW 0"
-		(exclude_from_sim no)
-		(at 104.11 26.83 0)
-		(effects
-			(font
-				(size 1.27 1.27)
-				(bold yes)
-			)
-			(justify left top)
-		)
-		(uuid "645080a0-8dab-42ac-97fa-77695191016f")
-	)
-	(text "ROW 3"
-		(exclude_from_sim no)
-		(at 104.11 141.13 0)
-		(effects
-			(font
-				(size 1.27 1.27)
-				(bold yes)
-			)
-			(justify left top)
-		)
-		(uuid "693012ee-8555-402f-ae44-c2b22e78f2a8")
-	)
-	(text "ROW 1"
-		(exclude_from_sim no)
-		(at 104.11 64.93 0)
-		(effects
-			(font
-				(size 1.27 1.27)
-				(bold yes)
-			)
-			(justify left top)
-		)
-		(uuid "7de9eb98-128f-43b6-9933-b893eea14f5a")
 	)
 	(text "South (Female)"
 		(exclude_from_sim no)
@@ -2270,12 +2198,6 @@
 		(uuid "64295898-be93-4a01-867e-90ac47f160e2")
 	)
 	(junction
-		(at 217.17 226.06)
-		(diameter 0)
-		(color 0 0 0 0)
-		(uuid "6503a5ed-2ac9-41f5-bbd0-ba600a1620c9")
-	)
-	(junction
 		(at 242.57 73.66)
 		(diameter 0)
 		(color 0 0 0 0)
@@ -2328,12 +2250,6 @@
 		(diameter 0)
 		(color 0 0 0 0)
 		(uuid "76431e07-a17f-4196-8b1c-ea4495618d17")
-	)
-	(junction
-		(at 166.37 226.06)
-		(diameter 0)
-		(color 0 0 0 0)
-		(uuid "77ad0184-ffd9-4ede-8b57-7d3d9e6bfda5")
 	)
 	(junction
 		(at 242.57 111.76)
@@ -2396,22 +2312,10 @@
 		(uuid "85d34453-8539-4322-9955-96575d6d9cc7")
 	)
 	(junction
-		(at 140.97 226.06)
-		(diameter 0)
-		(color 0 0 0 0)
-		(uuid "8a47aed7-ad23-450d-a7e3-f4e3b0c921dd")
-	)
-	(junction
 		(at 191.77 35.56)
 		(diameter 0)
 		(color 0 0 0 0)
 		(uuid "8a7aaec2-eb59-4e9e-8929-7eae78464a4a")
-	)
-	(junction
-		(at 191.77 226.06)
-		(diameter 0)
-		(color 0 0 0 0)
-		(uuid "8b83f50d-7153-47db-aa74-f1e49f0a1d0a")
 	)
 	(junction
 		(at 119.01 269.85)
@@ -2576,12 +2480,6 @@
 		(uuid "ba6ac561-ff10-4449-806b-3109a3a24c76")
 	)
 	(junction
-		(at 115.57 226.06)
-		(diameter 0)
-		(color 0 0 0 0)
-		(uuid "ba9e677b-eaa6-47c2-90ed-3e0e2f95f8f7")
-	)
-	(junction
 		(at 140.97 228.6)
 		(diameter 0)
 		(color 0 0 0 0)
@@ -2676,12 +2574,6 @@
 		(diameter 0)
 		(color 0 0 0 0)
 		(uuid "dc753477-5b2d-4d7d-9355-fb0b807dbd76")
-	)
-	(junction
-		(at 242.57 226.06)
-		(diameter 0)
-		(color 0 0 0 0)
-		(uuid "dd6351f4-fe09-449f-8fa5-82c06a30222d")
 	)
 	(junction
 		(at 93.01 323.85)
