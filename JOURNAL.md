@@ -6,7 +6,7 @@
 > [!NOTE]
 > This devlog is mirrored from [Half Life](https://halflife.hackclub.com) ([open the project](https://halflife.hackclub.com/projects/u8rx23b637gqrgavl5v323de)). Editing it here will not change the platform's copy, and the next sync overwrites this file.
 
-> Cool Very Cool Modular Matrix
+> Cool Very Cool Modular Matrix that I build in like a few hours i think it is very cool and stuff and d
 
 | Week | Tier | Hours logged | Entries |
 | --- | --- | --- | --- |
